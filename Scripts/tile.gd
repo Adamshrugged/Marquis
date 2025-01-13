@@ -20,9 +20,7 @@ func set_state(new_state):
 	#print("updating state to " + new_state)
 	tileResource.set_tile_type(new_state)
 	match new_state:
-		"empty":
-			texture_rect.modulate = Color(1, 1, 1)
 		"farm":
 			texture_rect.texture = GREEN_FARM
 		"town":
-			texture_rect.modulate = Color(0, 0, 1)
+			texture_rect.texture = GREEN_TOWN

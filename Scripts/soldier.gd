@@ -2,6 +2,15 @@ extends CharacterBody2D
 
 var target_tile: Node2D
 @export var tile_size = 32
+var strength: int = 10  # Example attribute
+var health: int = 100  # Example attribute
+
+func combine_with(other_soldier):
+	# Combine attributes
+	strength += other_soldier.strength
+	health += other_soldier.health
+	print("Combined soldiers: New strength =", strength, ", New health =", health)
+
 
 func find_target_tile(tiles, grid_size) -> bool:
 	# BFS to find a valid tile for a town
@@ -59,9 +68,19 @@ func move_to_target() -> bool:
 	if target_tile == null:
 		return false
 
-	var move_direction = (target_tile.position - position).normalized()
-	move_direction.x = sign(move_direction.x)
-	move_direction.y = sign(move_direction.y)
+	# Calculate direction to move
+	var move_direction = target_tile.position - position
+
+	# Prioritize horizontal or vertical movement
+	if abs(move_direction.x) > abs(move_direction.y):
+		move_direction = Vector2(sign(move_direction.x), 0)  # Horizontal move
+	elif abs(move_direction.y) > abs(move_direction.x):
+		move_direction = Vector2(0, sign(move_direction.y))  # Vertical move
+	else:
+		# If both distances are equal, pick one direction (e.g., prioritize horizontal)
+		move_direction = Vector2(sign(move_direction.x), 0)
+
+	# Move one step in the cardinal direction
 	position += move_direction * tile_size
 
 	# Check if reached the target

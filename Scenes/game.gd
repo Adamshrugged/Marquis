@@ -6,7 +6,7 @@ extends Node2D
 
 # Time tracking
 var elapsed_time = 0
-@export var ticksPerDay = 1
+@export var ticksPerDay: float = 1
 
 
 

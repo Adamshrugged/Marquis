@@ -1,6 +1,8 @@
 extends Node
 
 @export var townCost = 100
+@export var farmCost = 100
+@export var farmStengthCost = 0
 
 
 # Vars

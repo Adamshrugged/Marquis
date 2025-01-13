@@ -4,3 +4,4 @@
 
 [node name="Map" type="Node2D"]
 script = ExtResource("1_ht5x7")
+grid_size = Vector2(24, 10)

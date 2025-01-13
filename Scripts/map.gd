@@ -22,12 +22,14 @@ func getCount(type) -> int:
 	return tileCount
 
 func moveSoldiers() -> void:
-	for soldier in soldiers:
+	for i in range(soldiers.size()):
+		var soldier = soldiers[i]
+
 		# Find a target if none exists
 		if soldier.target_tile == null:
 			var found = soldier.find_target_tile(tiles, grid_size)
 			if not found:
-				print("No valid target for soldier at:", soldier.position)
+				#print("No valid target for soldier at:", soldier.position)
 				continue
 
 		# Move soldier toward the target
@@ -41,28 +43,66 @@ func moveSoldiers() -> void:
 				print("Cannot build town: Not enough money or invalid location")
 			soldier.target_tile = null  # Clear the target after action
 
+		# Check for collisions with other soldiers
+		for j in range(soldiers.size()):
+			if i == j:
+				continue  # Skip self-check
+
+			var other_soldier = soldiers[j]
+			if soldier.position == other_soldier.position:
+				soldier.combine_with(other_soldier)
+				soldiers.erase(j)  # Remove the combined soldier
+				break
+
+
 
 
 func getSoldierCount() -> int:
 	return soldiers.size()
 
 func rulersGrow() -> void:
-	print("growing rulers")
+	#print("growing rulers")
 	for ruler in rulers:
 		ruler.strength += 10
 		if ruler.strength >= 100:
 			ruler.strength -= 100
 			spawn_soldiers(ruler)
-			print("spawning soliders at ruler")
+			#print("spawning soliders at ruler")
 
 func grow() -> int:
+	var taxIncome = 0
 	for row in tiles:
 		for tile in row:
-			if tile.get_state() == "farm":
+			var tileType = tile.get_state()
+			if tileType == "town" or tileType == "farm":
 				tile.tileStrength += 1
 				if tile.tileStrength > 255:
-					tile.tileStrength = 1
-	return 1
+					tile.tileStrength = 255
+				taxIncome += tile.tileStrength
+			if tileType == "town":
+				var neighbors = get_neighbors(tile)
+				var farmCount = getAdjCount(neighbors, "farm")
+				#print( "Farms: " + str(farmCount) )
+				print("Farm count: %s" % str(farmCount))
+				tile.tileStrength += farmCount
+				# Check if open slots
+				if getAdjCount(neighbors, "empty") > 0:
+					print("Str: %s" % str(tile.tileStrength))
+					if tile.tileStrength > GameManager.farmStengthCost:
+						if GameManager.money > GameManager.farmCost:
+							GameManager.money -= GameManager.farmCost
+							tile.tileStrength -= GameManager.farmStengthCost
+							# Pick a random neighbor tile to build a tile
+							neighbors.pick_random().set_state("farm")
+	return taxIncome * GameManager.tax_rate / 1000
+
+func getAdjCount(tiles, type):
+	var farmCount = 0
+	for tile in tiles:
+		if tile.get_state() == type:
+			farmCount += 1
+	return farmCount
+
 
 func spawn_soldiers(parentScene):
 	var soldier = soldier_scene.instantiate()
