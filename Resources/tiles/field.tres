@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Tile" load_steps=3 format=3 uid="uid://pb2hkvb1yswu"]
+
+[ext_resource type="Script" path="res://Resources/_base/tile.gd" id="1_5nxhl"]
+[ext_resource type="Texture2D" uid="uid://dlgtdnfsvowcj" path="res://Art/Temp/Tiles/tile_0000.png" id="1_ff200"]
+
+[resource]
+resource_local_to_scene = true
+script = ExtResource("1_5nxhl")
+is_occupied = false
+background = ExtResource("1_ff200")
+state = "empty"

@@ -1,0 +1,145 @@
+[gd_scene load_steps=5 format=3 uid="uid://djpoh6eviam0l"]
+
+[ext_resource type="Script" path="res://Scripts/gui_battle.gd" id="1_a5uja"]
+[ext_resource type="Texture2D" uid="uid://bx8kbxespqjc0" path="res://Art/Temp/ui/input_square.png" id="1_fjo1g"]
+[ext_resource type="FontFile" uid="uid://c43hobtayimob" path="res://Fonts/Kenney Future.ttf" id="1_yfoeu"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_3co8g"]
+font = ExtResource("1_yfoeu")
+font_size = 32
+outline_size = 10
+outline_color = Color(0, 0, 0, 1)
+shadow_size = 10
+
+[node name="GuiBattle" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_a5uja")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+offset_right = 400.0
+offset_bottom = 150.0
+theme_override_constants/separation = 10
+
+[node name="NinePatchRect" type="NinePatchRect" parent="HBoxContainer"]
+custom_minimum_size = Vector2(377, 150)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture = ExtResource("1_fjo1g")
+patch_margin_left = 7
+patch_margin_top = 7
+patch_margin_right = 7
+patch_margin_bottom = 7
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/NinePatchRect"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/NinePatchRect/MarginContainer"]
+layout_mode = 2
+
+[node name="Money" type="Label" parent="HBoxContainer/NinePatchRect/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Money: $500"
+label_settings = SubResource("LabelSettings_3co8g")
+
+[node name="Days" type="Label" parent="HBoxContainer/NinePatchRect/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Days: 700"
+label_settings = SubResource("LabelSettings_3co8g")
+
+[node name="TaxRate" type="Label" parent="HBoxContainer/NinePatchRect/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Tax Rate: 50%"
+label_settings = SubResource("LabelSettings_3co8g")
+
+[node name="NinePatchRect2" type="NinePatchRect" parent="HBoxContainer"]
+custom_minimum_size = Vector2(377, 150)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture = ExtResource("1_fjo1g")
+patch_margin_left = 7
+patch_margin_top = 7
+patch_margin_right = 7
+patch_margin_bottom = 7
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/NinePatchRect2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/NinePatchRect2/MarginContainer"]
+layout_mode = 2
+
+[node name="Strength" type="Label" parent="HBoxContainer/NinePatchRect2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Strength: 1,000"
+label_settings = SubResource("LabelSettings_3co8g")
+
+[node name="Soldiers" type="Label" parent="HBoxContainer/NinePatchRect2/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Status"
+label_settings = SubResource("LabelSettings_3co8g")
+
+[node name="NinePatchRect3" type="NinePatchRect" parent="HBoxContainer"]
+custom_minimum_size = Vector2(377, 150)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture = ExtResource("1_fjo1g")
+patch_margin_left = 7
+patch_margin_top = 7
+patch_margin_right = 7
+patch_margin_bottom = 7
+
+[node name="MarginContainer" type="MarginContainer" parent="HBoxContainer/NinePatchRect3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer/NinePatchRect3/MarginContainer"]
+layout_mode = 2
+
+[node name="Empty" type="Label" parent="HBoxContainer/NinePatchRect3/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Empty: 0"
+label_settings = SubResource("LabelSettings_3co8g")
+
+[node name="Farms" type="Label" parent="HBoxContainer/NinePatchRect3/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Farms: 0"
+label_settings = SubResource("LabelSettings_3co8g")
+
+[node name="Towns" type="Label" parent="HBoxContainer/NinePatchRect3/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Towns: 0"
+label_settings = SubResource("LabelSettings_3co8g")

@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://bxtqqkevvah0w"]
+
+[ext_resource type="Texture2D" uid="uid://f8jb1ab5a6yl" path="res://Art/Temp/Units/green/tile_0124.png" id="1_ciwks"]
+[ext_resource type="Script" path="res://Scripts/soldier.gd" id="1_x1j4t"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ntl3o"]
+size = Vector2(30, 30)
+
+[node name="Soldier" type="CharacterBody2D"]
+script = ExtResource("1_x1j4t")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(2, 2)
+texture = ExtResource("1_ciwks")
+centered = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(15, 15)
+shape = SubResource("RectangleShape2D_ntl3o")

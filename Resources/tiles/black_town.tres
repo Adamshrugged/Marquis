@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="Tile" load_steps=3 format=3 uid="uid://b0hkpe10l5hx1"]
+
+[ext_resource type="Texture2D" uid="uid://8i0rlqay51ab" path="res://Art/Temp/LMO/black_town.png" id="1_3bv0n"]
+[ext_resource type="Script" path="res://Resources/_base/tile.gd" id="1_l1yd0"]
+
+[resource]
+script = ExtResource("1_l1yd0")
+background = ExtResource("1_3bv0n")

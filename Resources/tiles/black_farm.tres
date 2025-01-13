@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="Tile" load_steps=3 format=3 uid="uid://crhhlaunna2j4"]
+
+[ext_resource type="Texture2D" uid="uid://dl2krhjn8sf51" path="res://Art/Temp/LMO/black_farm.png" id="1_5m1o6"]
+[ext_resource type="Script" path="res://Resources/_base/tile.gd" id="1_g5nsi"]
+
+[resource]
+script = ExtResource("1_g5nsi")
+background = ExtResource("1_5m1o6")
