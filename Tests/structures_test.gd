@@ -4,7 +4,8 @@ extends SceneTree
 ## godot --headless --path . --script res://Tests/structures_test.gd
 ##
 ## Sample Valley: barricade at (14,10), cave at (10,12), the river (x 20-21) is
-## crossed only by the bridge at (20,6)-(21,6).
+## crossed only by the bridge at (20,6)-(21,6). Work goes at strength / n per tick
+## and every counter starts at 100 [E].
 
 var _fails := 0
 var sim: Simulation
@@ -20,58 +21,87 @@ func _init() -> void:
 	check(sim.action_allowed(0, Vector2i(14, 10), "clear_path"), "clear path allowed on a barricade")
 	check(not w.is_walkable(Vector2i(14, 10)), "barricade blocks movement")
 	check(sim.order_units([u], Vector2i(14, 10), "clear_path") == 1, "clear path accepted")
-	run(6)
+	run_until(func(): return w.terrain_at(Vector2i(14, 10)) == ".", 20)
 	check(w.terrain_at(Vector2i(14, 10)) == ".", "barricade cleared")
 	check(absi(u.pos.x - 14) + absi(u.pos.y - 10) == 1, "worked from the next cell")
 
-	# Barricade: costs 1 fund per 4 durability
+	# Barricade: on clear land the cell's counter is worked off first, then it stands
+	# with what's left over. 1 fund per 4 points
 	var funds := me.funds
+	sim.set_tax(0, 0)
 	check(sim.order_units([u], Vector2i(16, 8), "barricade") == 1, "barricade accepted")
-	run(12)
-	check(w.terrain_at(Vector2i(16, 8)) == "x", "barricade built")
-	check(w.durability[w.idx(Vector2i(16, 8))] == Rules.BARRICADE_STEP, "durability %d" % w.durability[w.idx(Vector2i(16, 8))])
-	check(is_equal_approx(funds - me.funds, Rules.BARRICADE_STEP / Rules.BARRICADE_POINTS_PER_FUND) or me.funds < funds, "barricade cost funds")
+	run_until(func(): return w.terrain_at(Vector2i(16, 8)) == "x", 20)
+	var first := w.durability[w.idx(Vector2i(16, 8))]
+	check(w.terrain_at(Vector2i(16, 8)) == "x" and first < u.strength / Rules.BUILD_DIV + 1, "barricade built (durability %d)" % first)
+	check(funds - me.funds >= Rules.CELL_START / Rules.BARRICADE_POINTS_PER_FUND - 4 and funds - me.funds < 40,
+		"barricade cost about 100 points / 4 (spent %d)" % (funds - me.funds))
+	check(not u.ordered, "a single barricade order is done once it stands")
 
 	# Barricade (continuous) keeps strengthening it and stays under orders
 	sim.order_units([u], Vector2i(16, 8), "barricade_cont")
-	run(30)
-	check(w.durability[w.idx(Vector2i(16, 8))] > Rules.BARRICADE_STEP * 2, "continuous barricade grew to %d" % w.durability[w.idx(Vector2i(16, 8))])
+	run(20)
+	check(w.durability[w.idx(Vector2i(16, 8))] > first + 100, "continuous barricade grew to %d" % w.durability[w.idx(Vector2i(16, 8))])
 	check(u.ordered and u.job == "barricade_cont", "still on continuous barricade")
 
-	# Dismantle the only river crossing: the far side becomes unreachable
+	# Dismantle the only river crossing: it becomes a damaged bridge and the far side is cut off
 	_fresh()
 	me = sim.country(0)
 	w = sim.world
+	me.funds = 100000
+	me.default_order = "standby"   # between orders (on Auto it would go and build villages)
+	sim.set_tax(0, 0)
 	u = sim._spawn(0, Vector2i(17, 6), 300)
 	check(sim.distance(u, Vector2i(25, 6)) > 0, "far bank reachable over the bridge")
 	check(sim.order_units([u], Vector2i(20, 6), "dismantle") == 1, "dismantle accepted")
 	run(15)
-	check(w.terrain_at(Vector2i(20, 6)) == "~", "bridge dismantled")
+	check(w.terrain_at(Vector2i(20, 6)) == "b" and not w.is_walkable(Vector2i(20, 6)), "bridge dismantled into a damaged bridge")
 	check(sim.distance(u, Vector2i(25, 6)) == -1, "far bank cut off")
 
-	# Build Bridge: water next to land becomes a bridge again (no tax, to measure the cost)
-	sim.set_tax(0, 0)
+	# Repair: a damaged bridge costs 2 funds a point
 	funds = me.funds
-	check(sim.action_allowed(0, Vector2i(20, 6), "bridge"), "bridge allowed on water by the bank")
-	check(not sim.action_allowed(0, Vector2i(20, 10), "bridge") or w.is_walkable(Vector2i(19, 10)), "bridge needs a bank")
-	check(sim.order_units([u], Vector2i(20, 6), "bridge") == 1, "bridge accepted")
-	run(15)
-	check(w.terrain_at(Vector2i(20, 6)) == "=", "bridge rebuilt")
-	check(w.durability[w.idx(Vector2i(20, 6))] == Rules.BRIDGE_MAX, "bridge at full durability")
-	check(funds - me.funds >= Rules.BRIDGE_NEW_COST * Rules.BRIDGE_MAX, "new bridge cost at least %d (spent %d)" % [Rules.BRIDGE_NEW_COST * Rules.BRIDGE_MAX, funds - me.funds])
+	check(sim.action_allowed(0, Vector2i(20, 6), "bridge"), "a damaged bridge can be repaired")
+	check(sim.order_units([u], Vector2i(20, 6), "bridge") == 1, "repair accepted")
+	run(5)
+	check(w.terrain_at(Vector2i(20, 6)) == "=" and funds - me.funds < 100, "bridge repaired cheaply (spent %d)" % (funds - me.funds))
 	check(sim.distance(u, Vector2i(25, 6)) > 0, "far bank reachable again")
 
-	# Dismantle (continuous): takes it down again and keeps watching
+	# Build Bridge over water: 30 funds a point, about 100 points
+	funds = me.funds
+	check(sim.action_allowed(0, Vector2i(20, 7), "bridge"), "bridge allowed on water by the bank")
+	check(not sim.action_allowed(0, Vector2i(10, 7), "bridge"), "no bridge on land")
+	check(sim.order_units([u], Vector2i(20, 7), "bridge") == 1, "bridge accepted")
+	run_until(func(): return w.terrain_at(Vector2i(20, 7)) == "=", 20)
+	check(w.terrain_at(Vector2i(20, 7)) == "=", "new bridge built")
+	check(funds - me.funds >= Rules.BRIDGE_NEW_COST * (Rules.CELL_START + 1), "new bridge cost at least %d (spent %d)" % [Rules.BRIDGE_NEW_COST * (Rules.CELL_START + 1), funds - me.funds])
+
+	# Dismantle (continuous): takes it down again and keeps working the damaged bridge
 	sim.order_units([u], Vector2i(20, 6), "dismantle_cont")
 	run(15)
-	check(w.terrain_at(Vector2i(20, 6)) == "~" and u.job == "dismantle_cont", "continuous dismantle keeps watching")
+	check(w.terrain_at(Vector2i(20, 6)) == "b" and u.job == "dismantle_cont", "continuous dismantle keeps at it")
+	check(w.durability[w.idx(Vector2i(20, 6))] > 0, "... making the damaged bridge harder to repair (%d)" % w.durability[w.idx(Vector2i(20, 6))])
+
+	# A unit standing on a bridge that comes down is lost [E]
+	_fresh()
+	w = sim.world
+	var on := sim._spawn(0, Vector2i(20, 6), 50)
+	on.order = "standby"
+	u = sim._spawn(0, Vector2i(19, 6), 2000)
+	u.order = "standby"
+	sim.order_units([u], Vector2i(20, 6), "dismantle")
+	run(4)
+	check(w.terrain_at(Vector2i(20, 6)) == "b" and on.dead, "a unit on a dismantled bridge is lost")
 
 	# Monsters come out of caves
 	_fresh()
 	w = sim.world
-	sim._spawn_monsters(1.0)
+	var cave := w.idx(Vector2i(10, 12))
+	for n in 14:
+		sim._cave_tick(cave)
+	check(sim.monster_stats().count == 0, "no monster for the first 14 cave visits")
+	sim._cave_tick(cave)
 	var m := sim.monster_stats()
-	check(m.count == 1, "a monster came out of the cave")
+	check(m.count == 1 and m.strength == Rules.MONSTER_START and w.durability[cave] == 5,
+		"15th visit: a 200 monster comes out (counter %d)" % w.durability[cave])
 
 	# ... but not onto a unit standing by the cave (they'd share the cell without a fight)
 	_fresh()
@@ -80,92 +110,84 @@ func _init() -> void:
 		var by: Vector2i = Vector2i(10, 12) + d
 		if w.is_walkable(by):
 			sim._spawn(0, by, 50)
-	sim._spawn_monsters(1.0)
+	_ripe_cave()
 	check(sim.monster_stats().count == 0, "no monster spawns onto a unit")
 
-	# A leader's released unit fights an enemy standing in the gate
+	# The leader releases a quarter of its strength only into an empty gate [E]
 	_fresh()
 	var gate := sim.world.castle_entrance(0)
-	var intruder := sim._spawn(1, gate, 10)
 	var lord := sim.country(0)
+	var intruder := sim._spawn(1, gate, 10)
+	intruder.order = "standby"
 	lord.leader.strength = 10000
-	lord.emit_cooldown = 0
-	lord.population = 0
 	sim._update_leaders()
-	check(intruder.dead and sim._units_at(gate).all(func(e): return e.owner == 0 and not e.dead) \
-		and not sim._units_at(gate).is_empty(), "released unit fights the enemy in the gate")
+	check(lord.leader.strength == 10000 and sim._units_at(gate) == [intruder], "no release while someone stands in the gate")
+	sim._kill(intruder)
+	sim._update_leaders()
+	var out: Array = sim._units_at(gate)
+	check(out.size() == 1 and out[0].owner == 0 and out[0].strength == 2500 and lord.leader.strength == 7500,
+		"a quarter leaves through the empty gate (%s)" % [out.map(func(e): return e.strength)])
 
-	# A released unit that merges with a gate guard isn't counted twice in the stats
-	_fresh()
-	sim._spawn(0, sim.world.castle_entrance(0), 30).order = "standby"   # a guard that stays put
-	sim.country(0).leader.strength = 10000
-	sim.country(0).emit_cooldown = 0
-	sim.step()
-	var live := sim.units.filter(func(e): return e.owner == 0 and not e.is_leader and not e.dead).size()
-	check(sim.units.all(func(e): return not e.dead) and sim.stats(0).units == live,
-		"merged units leave the list the same day (%d counted, %d alive)" % [sim.stats(0).units, live])
-
+	# Seal Cave: the cave becomes mountain, at no cost in strength
 	_fresh()
 	w = sim.world
-	sim._spawn_monsters(1.0)
+	_ripe_cave()
 	m = sim.monster_stats()
-
-	# Seal Cave: the cave is closed and costs strength
 	u = sim._spawn(0, Vector2i(8, 12), 200)
 	check(sim.order_units([u], Vector2i(10, 12), "seal") == 1, "seal accepted")
 	run(20)
-	check(w.terrain_at(Vector2i(10, 12)) != "o" and w.caves.is_empty(), "cave sealed")
-	sim._spawn_monsters(1.0)
+	check(w.terrain_at(Vector2i(10, 12)) == "^" and w.caves.is_empty(), "cave sealed")
+	run(Rules.CELL_DAYS * 2)
 	check(sim.monster_stats().count <= m.count, "sealed cave makes no monsters")
 
 	# A strong monster wrecks a village
 	_fresh()
 	w = sim.world
 	var village := Vector2i(7, 4)
-	sim._spawn(Simulation.MONSTER, Vector2i(9, 5), 500)
-	run(15)
+	for d in World.N4:
+		if w.is_walkable(village - d) and w.village_at(village - d) < 0:
+			var beast := sim._spawn(Simulation.MONSTER, village - d, 500)
+			beast.facing = d
+			beast.roam = 50
+			break
+	run(3)
 	check(w.village_at(village) == -1, "monster destroyed a village")
 
-	# The drawn bridge tile follows durability, through repeated dismantle/rebuild
+	# Bridges are drawn damaged exactly while they're damaged
 	_fresh()
 	w = sim.world
 	sim.set_tax(0, 0)
 	sim.country(0).funds = 100000
+	sim.country(0).default_order = "standby"
 	var layer := TerrainLayer.new()
 	var spot := Vector2i(20, 6)
 	var full_code := layer.code_at(w, spot)
-	check(full_code != 0x7A, "full bridge drawn as a bridge (%x)" % full_code)
+	check(full_code != 0x7A, "bridge drawn as a bridge (%x)" % full_code)
 	u = sim._spawn(0, Vector2i(17, 6), 300)
-	for cycle in 3:
+	for cycle in 2:
 		sim.order_units([u], spot, "dismantle")
-		run(4)
-		if w.terrain_at(spot) == "=":
-			check(layer.code_at(w, spot) == 0x7A, "cycle %d: half-dismantled bridge drawn damaged" % cycle)
-		run(15)
-		check(w.terrain_at(spot) == "~" and layer.code_at(w, spot) >= 0x30 and layer.code_at(w, spot) < 0x60, "cycle %d: dismantled bridge drawn as water" % cycle)
+		run_until(func(): return w.terrain_at(spot) == "b", 20)
+		check(layer.code_at(w, spot) == 0x7A, "cycle %d: dismantled bridge drawn damaged" % cycle)
 		sim.order_units([u], spot, "bridge")
 		run_until(func(): return w.terrain_at(spot) == "=", 20)
-		check(layer.code_at(w, spot) == 0x7A, "cycle %d: unfinished bridge drawn damaged" % cycle)
-		run_until(func(): return w.durability[w.idx(spot)] == Rules.BRIDGE_MAX, 20)
-		check(w.durability[w.idx(spot)] == Rules.BRIDGE_MAX and layer.code_at(w, spot) == full_code, "cycle %d: repaired bridge drawn as a full bridge" % cycle)
-	check(w.dirty.has(spot), "durability changes queue a redraw")
+		check(layer.code_at(w, spot) == full_code, "cycle %d: repaired bridge drawn as a bridge" % cycle)
+	check(w.dirty.has(spot), "changes queue a redraw")
 	layer.free()
 
-	# A damaged bridge from the map ('b') repairs into a normal bridge
-	_fresh()
-	w = sim.world
+	# A damaged bridge from the map ('b') blocks the way until repaired
 	var lvl := Level.load_file("res://Levels/sample_valley.json")
 	lvl.terrain[6] = lvl.terrain[6].substr(0, 20) + "bb" + lvl.terrain[6].substr(22)
 	sim = Simulation.new(lvl, 1)
 	w = sim.world
+	sim.country(0).funds = 100000
 	layer = TerrainLayer.new()
-	check(w.terrain_at(spot) == "=" and w.durability[w.idx(spot)] == Rules.BRIDGE_DAMAGED_START, "map 'b' loads as a damaged bridge")
-	check(layer.code_at(w, spot) == 0x7A and w.is_walkable(spot), "damaged bridge drawn damaged, still walkable")
-	u = sim._spawn(0, Vector2i(24, 6), 300)   # far bank, so the two repairers don't meet and merge
-	sim.order_units([u], Vector2i(21, 6), "bridge")
+	sim.country(0).default_order = "standby"
+	check(w.terrain_at(spot) == "b" and w.durability[w.idx(spot)] == Rules.CELL_START, "map 'b' loads as a damaged bridge")
+	check(layer.code_at(w, spot) == 0x7A and not w.is_walkable(spot), "damaged bridge drawn damaged, not walkable")
+	sim.order_units([sim._spawn(0, Vector2i(24, 6), 300)], Vector2i(21, 6), "bridge")
 	sim.order_units([sim._spawn(0, Vector2i(19, 6), 300)], spot, "bridge")
-	run_until(func(): return w.durability[w.idx(spot)] == Rules.BRIDGE_MAX and w.durability[w.idx(Vector2i(21, 6))] == Rules.BRIDGE_MAX, 40)
-	check(layer.code_at(w, spot) != 0x7A and layer.code_at(w, Vector2i(21, 6)) != 0x7A, "repaired map bridge drawn as a full bridge")
+	run_until(func(): return w.terrain_at(spot) == "=" and w.terrain_at(Vector2i(21, 6)) == "=", 40)
+	check(layer.code_at(w, spot) != 0x7A and layer.code_at(w, Vector2i(21, 6)) != 0x7A, "repaired map bridge drawn as a bridge")
 	layer.free()
 
 	# AI countries seal caves near their land
@@ -198,10 +220,8 @@ func _init() -> void:
 func _fresh() -> void:
 	sim = Simulation.new(Level.load_file("res://Levels/sample_valley.json"), 1)
 	sim.country(1).leader.strength = 100
-	sim.country(1).tax = 100
+	sim.country(1).tax = Rules.TAX_MAX
 	sim.country(1).auto_tax = false
-	sim.country(1).emit_cooldown = 1 << 30
-	sim.country(0).emit_cooldown = 1 << 30
 
 
 func run_until(done: Callable, max_days: int) -> void:
@@ -220,3 +240,10 @@ func check(ok: bool, what: String) -> void:
 	print(("PASS  " if ok else "FAIL  ") + what)
 	if not ok:
 		_fails += 1
+
+
+## Brings Sample Valley's cave to its next monster.
+func _ripe_cave() -> void:
+	var i := sim.world.idx(Vector2i(10, 12))
+	sim.world.durability[i] = Rules.CAVE_SPAWN - Rules.CAVE_GROW
+	sim._cave_tick(i)

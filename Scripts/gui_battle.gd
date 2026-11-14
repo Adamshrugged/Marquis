@@ -108,7 +108,7 @@ func _build_treasury(box: VBoxContainer) -> void:
 	_caption(r2, "Tax")
 	_tax_slider = HSlider.new()
 	_tax_slider.min_value = 0
-	_tax_slider.max_value = 100
+	_tax_slider.max_value = Rules.TAX_MAX
 	_tax_slider.step = 1
 	_tax_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tax_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -281,7 +281,7 @@ func show_state(game) -> void:
 	if me:
 		_tax_slider.set_value_no_signal(me.tax)
 		_tax_auto.set_pressed_no_signal(me.auto_tax)
-		_tax_value.text = "%d%%%s" % [me.tax, " A" if me.auto_tax else ""]
+		_tax_value.text = "%d/%d%s" % [me.tax, Rules.TAX_MAX, " A" if me.auto_tax else ""]
 		_tax_note.text = sim.tax_status(sim.player)
 		_tax_note.add_theme_color_override("font_color", WARN if _tax_note.text.begins_with("No tax") else CAPTION)
 		_tax_note.tooltip_text = _tax_note.text
@@ -335,7 +335,7 @@ func _on_slider_input(event: InputEvent) -> void:
 func _rate_at(x: float) -> int:
 	var grab := float(_tax_slider.get_theme_icon("grabber").get_width())
 	var ratio := clampf((x - grab / 2.0) / maxf(_tax_slider.size.x - grab, 1.0), 0.0, 1.0)
-	return roundi(ratio * 100.0)
+	return roundi(ratio * Rules.TAX_MAX)
 
 
 ## While the mouse is on the tax bar: income and growth per day at the rate under
@@ -354,11 +354,12 @@ func _show_preview(sim: Simulation) -> void:
 	var key := "%d|%d|%d|%s" % [sim.day, rate, base, dragging]
 	if key != _preview_key:
 		_preview_key = key
-		var lines := ["At %d%%:  %s" % [rate, _effect(sim, rate)]]
-		lines.append("%s %d%%:  %s" % ["Was" if dragging else "Now", base, _effect(sim, base)])
-		if me.leader.pos != sim.world.castle_center(me.id):
-			lines.append("No tax comes in while the leader is away from the castle")
-		lines.append("Low tax: villages grow faster, more units.  High: more funds.  [ ] keys too")
+		var lines := ["At %d:  %s" % [rate, _effect(sim, rate)]]
+		lines.append("%s %d:  %s" % ["Was" if dragging else "Now", base, _effect(sim, base)])
+		var why := sim.no_tax_reason(sim.player, maxi(rate, 1))
+		if why != "":
+			lines.append(why)
+		lines.append("Tax is taken from village population: low tax, villages fill up and send out units sooner.  [ ] keys too")
 		_preview_text.text = "
 ".join(lines)
 		_preview.reset_size()

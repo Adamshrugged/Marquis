@@ -121,19 +121,19 @@ func _build_tax(tabs: TabContainer) -> void:
 	_auto_tax.focus_mode = Control.FOCUS_NONE
 	_auto_tax.toggled.connect(func(on): game.sim.set_auto_tax(game.sim.player, on))
 	box.add_child(_auto_tax)
-	_note(box, "Checked every day from the top. Funds saved for a bridge don't count;\npaying upkeep with under %d funds counts as broke." % Rules.AUTO_FUNDS_HIGH)
+	_note(box, "Checked from the top at each collection (every %d days). Rates run 0-%d.\nFunds saved for a bridge don't count." % [Rules.CELL_DAYS, Rules.TAX_MAX])
 	_tax_rows = VBoxContainer.new()
 	box.add_child(_tax_rows)
 	var other := HBoxContainer.new()
 	box.add_child(other)
 	_label(other, "Otherwise: tax")
-	_otherwise = _spin(other, 0, 100, "%")
+	_otherwise = _spin(other, 0, Rules.TAX_MAX, "")
 	_otherwise.value_changed.connect(func(v):
 		_tax.otherwise = int(v)
 		_commit_tax(false))
 	_add_tax = _button(box, "Add line", "Add a line above 'otherwise'", func():
 		var last: int = _tax.lines.back().below if not _tax.lines.is_empty() else 0
-		_tax.lines.append({"below": last + 1000, "tax": 20})
+		_tax.lines.append({"below": last + 512, "tax": 10})
 		_commit_tax(true))
 
 
@@ -283,7 +283,7 @@ func _redraw_tax() -> void:
 		how.add_item("keep the rate")
 		how.select(1 if l.tax < 0 else 0)
 		row.add_child(how)
-		var rate := _spin(row, 0, 100, "%")
+		var rate := _spin(row, 0, Rules.TAX_MAX, "")
 		rate.value = maxi(l.tax, 0)
 		rate.visible = l.tax >= 0
 		rate.value_changed.connect(func(v):

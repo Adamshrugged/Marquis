@@ -4,11 +4,15 @@ class_name World
 ## The map's mutable state: terrain, territory, villages.
 ## Cells that change are queued in `dirty` for the renderer to redraw.
 
-const BLOCKING := "~^xo*"  # terrain chars units can't walk on
-## For the info panels: what each terrain char is called, and full durability of structures
+const BLOCKING := "~^xo*b"  # terrain chars units can't walk on (a damaged bridge too [E])
+## For the info panels: what each terrain char is called, and what its counter means
+## [label, top of the bar] (see `durability`)
 const TERRAIN_NAMES := {".": "Clear land", "T": "Woods", "~": "Water", "^": "Mountain", "=": "Bridge",
-	"b": "Bridge", "x": "Barricade", "o": "Cave", "*": "Rubble"}
-const MAX_DURABILITY := {"=": Rules.BRIDGE_MAX, "b": Rules.BRIDGE_MAX, "x": Rules.BARRICADE_MAX, "*": Rules.MAP_BARRICADE}
+	"b": "Damaged bridge", "x": "Barricade", "o": "Cave", "*": "Rubble"}
+const COUNTERS := {"=": ["Durability", Rules.CELL_START], "x": ["Durability", Rules.DURABILITY_MAX],
+	"*": ["Durability", Rules.CELL_START], "b": ["Repair work left", Rules.DURABILITY_MAX],
+	"T": ["Clearing work left", Rules.CELL_START], "o": ["Sealing work left", Rules.DURABILITY_MAX],
+	"~": ["Bridging work left", Rules.CELL_START]}
 const N8: Array[Vector2i] = [
 	Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1),
 	Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1),
@@ -35,9 +39,11 @@ var walkable: PackedByteArray         # 1 = units can stand here
 var nb4: PackedInt32Array             # 4 neighbour indices per cell (N, E, S, W), -1 off the map
 var tcode: PackedByteArray           # terrain char codes, same as `terrain` but fast to read
 var obstacle: PackedByteArray         # fast lookup: OBSTACLE_* for barricade/rubble/cave cells
-var durability: PackedInt32Array      # bridges, barricades, rubble
+## Every cell's counter [E]: durability of bridges, barricades and rubble; work left
+## on woods, caves, water and damaged bridges; work left before a barricade stands on
+## clear land. All start at Rules.CELL_START.
+var durability: PackedInt32Array
 var caves: Dictionary = {}            # idx -> true
-var new_bridges: Dictionary = {}      # idx -> true, bridges still being built from scratch
 var dirty: Array[Vector2i] = []
 
 
@@ -66,7 +72,7 @@ static func from_level(level: Level) -> World:
 		var i := w.idx(v.pos)
 		w.villages[i] = true
 		w.village_owner[i] = v.owner
-		w.village_pop[i] = Rules.POP_PER_TERRITORY
+		w.village_pop[i] = Rules.CELL_START   # [E]
 		w.territory[i] = v.owner
 	for o in level.objects:
 		w.objects[w.idx(o.pos)] = o.code
@@ -82,20 +88,10 @@ static func from_level(level: Level) -> World:
 	w.tcode.resize(n)
 	w.obstacle.resize(n)
 	w.durability.resize(n)
+	w.durability.fill(Rules.CELL_START)
 	for i in n:
 		w._update_walkable(i)
-		var t := w.terrain_at(w.pos(i))
-		if t == "b":
-			# A damaged bridge is an ordinary bridge with low durability
-			var p := w.pos(i)
-			var row := w.terrain[p.y]
-			w.terrain[p.y] = row.substr(0, p.x) + "=" + row.substr(p.x + 1)
-			w.durability[i] = Rules.BRIDGE_DAMAGED_START
-		elif t == "=":
-			w.durability[i] = Rules.BRIDGE_MAX
-		elif t in "x*":
-			w.durability[i] = Rules.MAP_BARRICADE
-		elif t == "o":
+		if w.terrain_at(w.pos(i)) == "o":
 			w.caves[i] = true
 		w.tcode[i] = w.terrain_at(w.pos(i)).unicode_at(0)
 	return w
@@ -163,12 +159,9 @@ func can_barricade(p: Vector2i) -> bool:
 	return terrain_at(p) == "." and village_owner[i] < 0 and castle_owner[i] < 0 and not objects.has(i)
 
 
-## Water next to somewhere walkable, or a bridge that isn't at full durability.
+## Water or a damaged bridge, next to somewhere walkable.
 func can_bridge(p: Vector2i) -> bool:
-	var t := terrain_at(p)
-	if t in "=b":
-		return durability[idx(p)] < Rules.BRIDGE_MAX
-	if t != "~":
+	if not terrain_at(p) in "~b":
 		return false
 	for d in N4:
 		if is_walkable(p + d):
@@ -195,9 +188,6 @@ func remove_castle(owner: int) -> void:
 			set_terrain(p, ".")
 
 
-func move_days(p: Vector2i) -> int:
-	return Rules.WOODS_MOVE_DAYS if terrain_at(p) == "T" else 1
-
 
 func territory_of(p: Vector2i) -> int:
 	return territory[idx(p)]
@@ -207,14 +197,13 @@ func village_at(p: Vector2i) -> int:
 	return village_owner[idx(p)]
 
 
-## Clear land, no village, not castle, no own village in the 8 neighbours.
+## Clear land (anyone's territory or none [E]), no village, not castle, no own
+## village in the 8 neighbours.
 ## allow_woods: woods count as clear land (a planned village clears them first).
 func can_build_village(p: Vector2i, owner: int, allow_woods := false) -> bool:
 	var i := p.y * width + p.x
 	var t := tcode[i]
 	if (t != C_CLEAR and not (allow_woods and t == C_WOODS)) or village_owner[i] >= 0 or castle_owner[i] >= 0:
-		return false
-	if territory[i] >= 0 and territory[i] != owner:
 		return false
 	for dy in range(maxi(p.y - 1, 0), mini(p.y + 2, height)):
 		for dx in range(maxi(p.x - 1, 0), mini(p.x + 2, width)):
@@ -223,6 +212,7 @@ func can_build_village(p: Vector2i, owner: int, allow_woods := false) -> bool:
 	return not objects.has(i)
 
 
+## A new village claims no land yet: it grows its territory one cell at a time [E].
 func place_village(p: Vector2i, owner: int, pop: float) -> void:
 	var i := idx(p)
 	villages[i] = true
@@ -230,18 +220,20 @@ func place_village(p: Vector2i, owner: int, pop: float) -> void:
 	village_pop[i] = pop
 	territory[i] = owner
 	_mark(p, false)
-	for d in N8:
-		claim_cell(p + d, owner)
 
 
-## Make a neighbouring cell territory. Only clear, unowned, non-castle land.
-func claim_cell(p: Vector2i, owner: int) -> bool:
+## Make a cell territory. Only clear, unowned, non-castle land; with `take`, also
+## another country's territory (not its villages) [E].
+func claim_cell(p: Vector2i, owner: int, take := false) -> bool:
 	if not in_bounds(p):
 		return false
 	var i := idx(p)
-	if terrain_at(p) != "." or territory[i] >= 0 or castle_owner[i] >= 0 or village_owner[i] >= 0:
+	if terrain_at(p) != "." or castle_owner[i] >= 0 or village_owner[i] >= 0:
+		return false
+	if territory[i] >= 0 and not (take and territory[i] != owner):
 		return false
 	territory[i] = owner
+	durability[i] = Rules.CELL_START
 	_mark(p, false)
 	return true
 
@@ -255,35 +247,38 @@ func territory_count(p: Vector2i, owner: int) -> int:
 	return n
 
 
+## Population at which a village claims land or sends out units [M][E].
 func village_cap(p: Vector2i) -> float:
 	return (territory_count(p, village_owner[idx(p)]) + 1) * Rules.POP_PER_TERRITORY
 
 
-## Remove a village. Its territory is freed unless another village of the
-## same owner also borders it.
+## Remove a village: the cell becomes clear land; the territory around it stays [E].
 func destroy_village(p: Vector2i) -> void:
 	var i := idx(p)
-	var owner := village_owner[i]
 	villages.erase(i)
 	village_owner[i] = -1
 	village_pop[i] = 0
 	territory[i] = -1
 	_mark(p, false)
+
+
+## A beaten country's village goes to `to`, with the old owner's territory around it [E].
+func hand_over_village(p: Vector2i, to: int) -> void:
+	var from := village_owner[idx(p)]
+	village_owner[idx(p)] = to
+	territory[idx(p)] = to
+	_mark(p, false)
 	for d in N8:
 		var q := p + d
-		if in_bounds(q) and territory[idx(q)] == owner and not _borders_village(q, owner):
-			territory[idx(q)] = -1
+		if in_bounds(q) and territory[idx(q)] == from:
+			territory[idx(q)] = to
 			_mark(q, false)
 
 
-func transfer_owner(from: int, to: int) -> void:
-	for i in territory.size():
-		if territory[i] == from:
-			territory[i] = to
-			_mark(pos(i), false)
-		if village_owner[i] == from:
-			village_owner[i] = to
-			_mark(pos(i), false)
+## Territory back to clear land (a unit stood on it) [E].
+func unclaim_cell(p: Vector2i) -> void:
+	territory[idx(p)] = -1
+	_mark(p, false)
 
 
 func villages_of(owner: int) -> Array[Vector2i]:
@@ -294,12 +289,10 @@ func villages_of(owner: int) -> Array[Vector2i]:
 	return out
 
 
-func _borders_village(p: Vector2i, owner: int) -> bool:
-	for d in N8:
-		var q := p + d
-		if in_bounds(q) and village_owner[idx(q)] == owner:
-			return true
-	return false
+## A castle centre, anyone's: units there fight and pay upkeep as in a castle [E].
+func is_castle_centre(i: int) -> bool:
+	var co := castle_owner[i]
+	return co >= 0 and pos(i) == castle_center(co)
 
 
 ## A changed cell; terrain changes also change the edge tiles of its neighbours.

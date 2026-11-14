@@ -3,13 +3,14 @@ class_name StatusWindow
 
 ## LMO's status window: every country side by side. Leader strength, area,
 ## unit strength and count, village population and count, funds, tax rate,
-## plus each AI's style and the monsters. Tab or the Status button toggles it;
+## upkeep paid and strength lost away from base on the last day, plus each AI's
+## style and the monsters. Tab or the Status button toggles it;
 ## the game keeps running. Refreshed once per game day.
 
 const ROWS := [
 	["leader", "Leader strength"], ["territory", "Area occupied"], ["unit_strength", "Unit strength"],
 	["units", "Units"], ["population", "Village population"], ["villages", "Villages"],
-	["funds", "Funds"], ["tax", "Tax rate"],
+	["funds", "Funds"], ["tax", "Tax rate"], ["upkeep", "Upkeep (funds/day)"], ["decay", "Decay (strength/day)"],
 ]
 
 var game                         # Scenes/game.gd
@@ -131,7 +132,9 @@ func _refresh() -> void:
 			elif r[0] == "funds":
 				l.text = "$%d" % s.funds
 			elif r[0] == "tax":
-				l.text = "%d%%%s" % [k.tax, " auto" if k.auto_tax else ""]
+				l.text = "%d%s" % [k.tax, " auto" if k.auto_tax else ""]
+			elif r[0] in ["upkeep", "decay"]:
+				l.text = "%d" % k.get(r[0])
 			else:
 				l.text = "%d" % s[r[0]]
 	var m := sim.monster_stats()

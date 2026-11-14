@@ -7,7 +7,7 @@ class_name Playbook
 ## A tax line is {below, tax}; tax -1 keeps the current rate.
 
 const MAX_LINES := 20
-const MAX_TAX_LINES := 6
+const MAX_TAX_LINES := 8
 ## [action, label], in the editor's order
 const ACTIONS := [
 	["plans", "Job board"], ["clear", "Clear woods"], ["build", "Build village"],
@@ -60,11 +60,18 @@ static func default_units(style_name: String, ai: bool) -> Array:
 	return lines
 
 
-## Tax playbook a country starts with: the old automatic tax.
-static func default_tax(style_name: String) -> Dictionary:
-	var st: Dictionary = Rules.STYLES[style_name]
-	return {"lines": [{"below": Rules.AUTO_FUNDS_LOW, "tax": st.tax_high},
-		{"below": Rules.AUTO_FUNDS_HIGH, "tax": -1}], "otherwise": st.tax_low}
+## Tax playbook a country starts with: LMO's automatic tax [E] as lines.
+## Player: 20 - funds / 256, here in steps of 640 funds. AI: 28, 24 ... 4 below 1792, else 0.
+static func default_tax(ai: bool) -> Dictionary:
+	var lines := []
+	if ai:
+		for n in 7:
+			lines.append({"below": 256 * (n + 1), "tax": 28 - 4 * n})
+	else:
+		var rates := [19, 17, 14, 12, 9, 7, 4, 2]
+		for n in rates.size():
+			lines.append({"below": 640 * (n + 1), "tax": rates[n]})
+	return {"lines": lines, "otherwise": 0}
 
 
 ## Tax rate from a tax playbook at these funds (current: the rate now).
@@ -113,5 +120,5 @@ static func sanitize_tax(book: Dictionary) -> Dictionary:
 	for l in book.get("lines", []):
 		if lines.size() < MAX_TAX_LINES and l is Dictionary:
 			var t := int(l.get("tax", -1))
-			lines.append({"below": maxi(int(l.get("below", 0)), 0), "tax": -1 if t < 0 else mini(t, 100)})
-	return {"lines": lines, "otherwise": clampi(int(book.get("otherwise", 10)), 0, 100)}
+			lines.append({"below": maxi(int(l.get("below", 0)), 0), "tax": -1 if t < 0 else mini(t, Rules.TAX_MAX)})
+	return {"lines": lines, "otherwise": clampi(int(book.get("otherwise", 0)), 0, Rules.TAX_MAX)}

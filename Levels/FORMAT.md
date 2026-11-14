@@ -28,8 +28,8 @@ See `sample_valley.json`. Minimal shape:
   "day_limit": 1500,
   "player": 0,
   "countries": [
-    { "id": 0, "castle": [3, 3], "funds": 5000, "tax": 50, "control": "player" },
-    { "id": 1, "castle": [26, 14], "funds": 5000, "tax": 50, "control": "ai" }
+    { "id": 0, "castle": [3, 3], "funds": 5000, "tax": 10, "control": "player" },
+    { "id": 1, "castle": [26, 14], "funds": 5000, "tax": 10, "control": "ai" }
   ],
   "terrain": [
     "^^^^^^^^",
@@ -63,7 +63,7 @@ Coordinates are `[x, y]` with `[0, 0]` top-left.
 |---|---|
 | `id` | 0 green, 1 red, 2 white, 3 black (the id sets the colour) |
 | `castle` | Top-left cell of the 3x3 castle. Those 9 cells become `C` automatically |
-| `funds`, `tax` | Starting money and tax rate |
+| `funds`, `tax` | Starting money and tax rate (0-30; higher values are cut to 30) |
 | `leader` | Starting leader strength. Default 400 (a guess) |
 | `control` | `player` or `ai` |
 | `style` | AI personality: `balanced`, `aggressive`, `builder` or `turtle`. Default: picked from the game seed |
@@ -77,7 +77,7 @@ Coordinates are `[x, y]` with `[0, 0]` top-left.
 | `~` | Water | |
 | `^` | Mountain | |
 | `=` | Bridge | |
-| `b` | Damaged bridge | Walkable. Starts at low durability; Build Bridge repairs it into a normal bridge |
+| `b` | Damaged bridge | Not walkable. Build Bridge repairs it into a bridge (2 funds a point) |
 | `x` | Barricade | |
 | `o` | Cave | Target of "Seal Cave" |
 | `*` | Rubble | Meaning is a guess |

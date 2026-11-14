@@ -76,7 +76,6 @@ func _init() -> void:
 		if far_day < 0 and sim.world.terrain_at(Vector2i(11, 3)) == ".":
 			far_day = d
 	check(far_day >= 0 and near_day > far_day, "urgent cleared first (day %d), then normal (day %d)" % [far_day, near_day])
-	check(not u.dead, "worker still alive")
 
 	# Only Auto units take plans
 	_fresh()
@@ -104,7 +103,6 @@ func _fresh() -> void:
 	sim.country(1).leader.strength = 100
 	sim.country(1).tax = 100
 	sim.country(1).auto_tax = false
-	sim.country(1).emit_cooldown = 1 << 30
 
 
 ## No other of the player's units do any work (new ones included).

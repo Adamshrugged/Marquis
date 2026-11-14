@@ -176,7 +176,7 @@ def convert(path, codes, theme, name):
             "id": owner,
             "castle": castles[owner],
             "funds": 5000,
-            "tax": 50,
+            "tax": 10,
             "control": "player" if owner == 0 else "ai",
         })
     level["terrain"] = ["".join(classify(c) for c in row) for row in codes]

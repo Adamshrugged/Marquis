@@ -81,7 +81,7 @@ func _parse(d: Dictionary) -> String:
 			"color": COLORS[id],   # always from the id, so names match the drawn colours
 			"castle": castle,
 			"funds": int(c.get("funds", 5000)),
-			"tax": int(c.get("tax", 50)),
+			"tax": clampi(int(c.get("tax", 10)), 0, Rules.TAX_MAX),
 			"leader": int(c.get("leader", Rules.LEADER_START)),
 			"style": c.get("style", ""),
 			"control": c.get("control", "player" if id == player else "ai"),

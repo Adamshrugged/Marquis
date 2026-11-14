@@ -134,15 +134,9 @@ func _redraw_cells(cells: Array[Vector2i]) -> void:
 		return
 	for p in cells:
 		var ch := doc.terrain_at(p)
-		var wch := "=" if ch == "b" else ch
-		if world.terrain_at(p) != wch:
-			world.set_terrain(p, wch)
-		var dur := 0
-		match ch:
-			"b": dur = Rules.BRIDGE_DAMAGED_START
-			"=": dur = Rules.BRIDGE_MAX
-			"x", "*": dur = Rules.MAP_BARRICADE
-		world.set_durability(p, dur)
+		if world.terrain_at(p) != ch:
+			world.set_terrain(p, ch)
+		world.set_durability(p, Rules.CELL_START)
 		var i := world.idx(p)
 		world.objects.erase(i)
 		world.territory[i] = doc.territory_at(p)
@@ -612,8 +606,8 @@ func _build_ui() -> void:
 	_field(cgrid, "AI style", _style)
 	_funds = _spin(0, 99999, 100, func(v): _set_country("funds", int(v)))
 	_field(cgrid, "Funds", _funds)
-	_tax = _spin(0, 100, 5, func(v): _set_country("tax", int(v)))
-	_field(cgrid, "Tax %", _tax)
+	_tax = _spin(0, Rules.TAX_MAX, 1, func(v): _set_country("tax", int(v)))
+	_field(cgrid, "Tax (0-30)", _tax)
 	_leader = _spin(1, 99999, 50, func(v): _set_country("leader", int(v)))
 	_field(cgrid, "Leader", _leader)
 	_strength = _spin(1, 99999, 10, func(v): unit_strength = v)

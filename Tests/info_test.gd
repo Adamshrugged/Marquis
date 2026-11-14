@@ -9,40 +9,31 @@ var sim: Simulation
 
 
 func _init() -> void:
-	# Growth projection = what the next day's growth actually adds
+	# Projections (the tax preview) match what one collection cycle does [E]: villages
+	# grow by territory + 1 every Rules.CELL_DAYS days, tax is taken from their population
 	_fresh()
 	var me := sim.country(0)
 	_standby(0)
-	sim.set_tax(0, 30)
-	for i in 30:   # until a village is below its cap
-		if sim.growth_per_day(0, 30) > 0:
-			break
+	sim.set_tax(0, 20)
+	var castle := sim.world.idx(sim.world.castle_center(0))
+	while (castle + sim.day + 1) % Rules.CELL_DAYS != 0:   # the next step collects tax
 		sim.step()
-	var before := _pops(0)
-	var projected := sim.growth_per_day(0, 30)
-	sim.step()
-	var grown := 0.0
-	for i in before:
-		var cap := sim.world.village_cap(sim.world.pos(i))
-		if before[i] < cap - 0.001 and sim.world.village_owner[i] == 0:
-			grown += sim.world.village_pop[i] - before[i]
-	check(projected > 0 and absf(projected - grown) < 0.01, "growth projection %.3f = actual %.3f" % [projected, grown])
-	check(sim.growth_per_day(0, 0) > sim.growth_per_day(0, 50), "lower tax grows faster")
-	check(is_equal_approx(Simulation.village_growth(32.0, 50), Rules.GROWTH_RATE * 0.5 * 2.0), "village growth formula")
-
-	# Income projection = what a (non route-check) day's collection adds
-	while sim.day % Rules.TAX_ROUTE_DAYS != 1:
-		sim.step()
+	var income := sim.tax_income(0, me.tax) * Rules.CELL_DAYS
 	var funds := me.funds
 	sim.step()
-	var income := sim.tax_income(0, me.tax)
 	check(income > 0 and absf((me.funds - funds) - income) < 0.001,
-		"income projection %.3f = funds gained %.3f" % [income, me.funds - funds])
-	check(is_equal_approx(sim.tax_income(0, 60), 2.0 * sim.tax_income(0, 30)), "income scales with the rate")
-	check(sim.tax_income(0, 1) == 0.0, "no income at 1%")
+		"income projection %.1f = funds gained %.1f" % [income, me.funds - funds])
+	var before := _total(0)
+	var projected := sim.growth_per_day(0, me.tax) * Rules.CELL_DAYS
+	run(Rules.CELL_DAYS)
+	check(absf(_total(0) - before - projected) <= 2.0,
+		"growth projection %.1f = actual %.1f over a cycle" % [projected, _total(0) - before])
+	check(sim.growth_per_day(0, 0) > sim.growth_per_day(0, 30), "the tax is taken from village population")
+	check(sim.tax_income(0, 30) > sim.tax_income(0, 10), "more tax, more funds")
+	check(sim.tax_income(0, 0) == 0.0, "no income at 0")
 	sim.set_tax(0, 0)
-	run(1)
-	check(me.connected.is_empty() and sim.tax_income(0, 30) > 0, "at 0% the projection still finds the routes")
+	run(Rules.CELL_DAYS)
+	check(me.connected.is_empty() and sim.tax_income(0, 30) > 0, "at 0 the projection still finds the routes")
 	var away := sim.world.castle_entrance(0)
 	sim._move(me.leader, away)
 	check(sim.tax_income(0, 30) == 0.0, "no income projected while the leader is away")
@@ -121,3 +112,7 @@ func check(ok: bool, what: String) -> void:
 	print(("PASS  " if ok else "FAIL  ") + what)
 	if not ok:
 		_fails += 1
+
+
+func _total(owner: int) -> float:
+	return _pops(owner).values().reduce(func(a, b): return a + b, 0.0)

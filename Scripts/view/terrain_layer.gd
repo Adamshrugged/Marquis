@@ -76,8 +76,8 @@ func code_at(world: World, p: Vector2i) -> int:
 		var code = _table.castle[off.y][off.x]
 		return 0x14 + co if code == null else int(code)
 	var t := world.terrain_at(p)
-	if t == "=" and world.durability[i] < Rules.BRIDGE_MAX:
-		return 0x7A   # damaged or unfinished bridge
+	if t == "b":
+		return 0x7A   # damaged bridge
 	if _table.same.has(t):
 		return int(_table.masks[t].get(str(_mask(world, p, _table.same[t])), _table.default[t]))
 	if t == "." and world.territory[i] >= 0:

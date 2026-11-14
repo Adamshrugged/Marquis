@@ -5,8 +5,8 @@
   "day_limit": 1500,
   "player": 0,
   "countries": [
-    { "id": 0, "castle": [3, 3], "funds": 5000, "tax": 50, "control": "player" },
-    { "id": 1, "castle": [26, 14], "funds": 5000, "tax": 50, "control": "ai" }
+    { "id": 0, "castle": [3, 3], "funds": 5000, "tax": 10, "control": "player" },
+    { "id": 1, "castle": [26, 14], "funds": 5000, "tax": 10, "control": "ai" }
   ],
   "terrain": [
     "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",

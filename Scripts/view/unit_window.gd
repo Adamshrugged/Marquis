@@ -118,7 +118,7 @@ func show_cell(cell: Vector2i) -> void:
 		_title_for("%s castle" % k.color.capitalize(), k.id)
 		_set_bar("Leader strength %d" % k.leader.strength, _log_fill(k.leader.strength), k.id)
 		var at_home := k.leader.pos == w.castle_center(k.id)
-		_detail.text = "The leader is in the castle (x%d)" % Rules.CASTLE_LEADER_MULT if at_home \
+		_detail.text = "The leader is in the castle: it hits out at strength / 4" if at_home \
 			else "The leader is away"
 	else:
 		key = "t%s" % cell
@@ -183,7 +183,7 @@ func _show_village(cell: Vector2i, here: Array) -> void:
 	var owner := w.village_owner[i]
 	var cap := w.village_cap(cell)
 	_title_for("%s village" % sim.owner_name(owner), owner)
-	_set_bar("Population %d / %d" % [w.village_pop[i], cap], w.village_pop[i] / cap, owner)
+	_set_bar("Population %d (full at %d)" % [w.village_pop[i], cap], minf(1.0, w.village_pop[i] / cap), owner)
 	var lines := []
 	for u in here.slice(0, 5):
 		var kind: String = "leader" if u.is_leader else ("monster" if u.owner == Simulation.MONSTER else u.size_class())
@@ -201,13 +201,12 @@ func _show_land(cell: Vector2i) -> void:
 	var name: String = World.TERRAIN_NAMES.get(t, "Unknown")
 	var land := w.territory[i]
 	_title_for(name, -1)
-	if World.MAX_DURABILITY.has(t):
-		_set_bar("Durability %d / %d" % [w.durability[i], World.MAX_DURABILITY[t]], float(w.durability[i]) / World.MAX_DURABILITY[t], -1)
+	if World.COUNTERS.has(t):
+		var c: Array = World.COUNTERS[t]
+		_set_bar("%s %d" % [c[0], w.durability[i]], minf(1.0, float(w.durability[i]) / c[1]), -1)
 	else:
 		_value.hide()
 		_bar.hide()
-	if t == "=" and w.durability[i] < Rules.BRIDGE_MAX:
-		_title.text = "Damaged bridge" if not w.new_bridges.has(i) else "Unfinished bridge"
 	_detail.text = "%s land" % sim.owner_name(land) if land >= 0 else "No one's land"
 
 

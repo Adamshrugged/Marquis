@@ -22,9 +22,8 @@ var job_target := Vector2i(-1, -1)
 var work := 0                # days of work left at the target
 var queue: Array = []        # player's queued orders, [target: Vector2i, action: String] pairs
 var watching := false        # continuous order waiting, not actually working
-var wait := 0                # days before the next step
-var idle := 0                # days until auto rethinks
-var decay := 0
+var idle := 0                # days until auto rethinks (monsters: ticks of rest)
+var roam := 0                # monsters: ticks left walking straight ahead
 var waited := 0              # days spent waiting at the rally point
 var facing := Vector2i(0, 1)
 

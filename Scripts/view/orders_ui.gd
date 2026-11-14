@@ -331,7 +331,7 @@ func _update_preview(cell: Vector2i, shift: bool) -> void:
 		_preview_paths.append([u, from, path])
 		if _preview_days < 0:
 			_preview_dist = path.size()
-			_preview_days = sim.travel_days(path)
+			_preview_days = sim.travel_days(path, from, u.facing if from == u.pos else Vector2i.ZERO)
 
 
 func _draw() -> void:
@@ -479,16 +479,16 @@ func describe(cell: Vector2i) -> String:
 			parts.append("%s %s %d (%s)" % [sim.owner_name(u.owner), what, u.strength, doing])
 	var i := w.idx(cell)
 	if w.village_owner[i] >= 0:
-		parts.append("%s village pop %d/%d" % [sim.country(w.village_owner[i]).color.capitalize(),
+		parts.append("%s village pop %d (full at %d)" % [sim.country(w.village_owner[i]).color.capitalize(),
 			w.village_pop[i], w.village_cap(cell)])
 	elif w.castle_owner[i] >= 0:
 		parts.append("%s castle" % sim.country(w.castle_owner[i]).color.capitalize())
 	else:
 		var t: String = World.TERRAIN_NAMES.get(w.terrain_at(cell), "?").to_lower()
-		if World.MAX_DURABILITY.has(w.terrain_at(cell)):
-			t += " (durability %d/%d)" % [w.durability[i], World.MAX_DURABILITY[w.terrain_at(cell)]]
-			if w.terrain_at(cell) == "=" and w.durability[i] < Rules.BRIDGE_MAX:
-				t = "damaged " + t + " - Build Bridge repairs it"
+		if World.COUNTERS.has(w.terrain_at(cell)):
+			t += " (%s %d)" % [World.COUNTERS[w.terrain_at(cell)][0].to_lower(), w.durability[i]]
+			if w.terrain_at(cell) == "b":
+				t += " - Build Bridge repairs it"
 		if w.territory[i] >= 0:
 			t += " (%s land)" % sim.country(w.territory[i]).color
 		parts.append(t)

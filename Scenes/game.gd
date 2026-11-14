@@ -138,9 +138,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			speed_index = maxi(speed_index - 1, 0)
 		KEY_BRACKETLEFT:
-			if me: sim.set_tax(me.id, me.tax - 5)
+			if me: sim.set_tax(me.id, me.tax - 1)
 		KEY_BRACKETRIGHT:
-			if me: sim.set_tax(me.id, me.tax + 5)
+			if me: sim.set_tax(me.id, me.tax + 1)
 		KEY_HOME:
 			center_on_leader()
 		KEY_M:

@@ -5,10 +5,10 @@ class_name MapOverlay
 ##   Territory (F1): each country's land outlined in its colour, lightly shaded.
 ##   Tax routes (F2): where the player's tax can come from. Cells walkable from the
 ##     castle gate are shaded green; own villages get a ring: green = paying, yellow =
-##     reachable but not paying yet (routes are rechecked every Rules.TAX_ROUTE_DAYS)
-##     or tax stopped, red = cut off now (it may pay until the next recheck). A red X marks what blocks the way next to the
+##     reachable but not paying yet (routes are found again at each collection,
+##     every Rules.CELL_DAYS days) or tax stopped, red = cut off now (it may pay until the next collection). A red X marks what blocks the way next to the
 ##     reachable area: enemy villages, barricades/rubble, water a bridge would cross.
-##     A banner says when no tax comes in at all (leader away, rate too low).
+##     A banner says when no tax comes in at all (leader away, gate blocked, rate 0).
 ##   Threats (F3): red where enemy units and monsters could strike soon, stronger
 ##     the more they outweigh your units nearby.
 ## Pressing the key of the shown overlay (or picking Off) hides it. Redrawn once a
@@ -274,7 +274,7 @@ func _draw_threats() -> void:
 			continue
 		var in_castle := w.castle_owner[w.idx(u.pos)] == u.owner
 		if u.owner == sim.player:
-			var s: float = u.strength * (Rules.CASTLE_LEADER_MULT if u.is_leader else Rules.CASTLE_UNIT_MULT) \
+			var s: float = u.strength * (Rules.CASTLE_STRENGTH if u.is_leader else 1.0) \
 				if in_castle else u.strength
 			_spread(mine, w, u.pos, GUARD_RADIUS, s)
 		elif not in_castle:

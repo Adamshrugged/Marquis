@@ -20,8 +20,8 @@ func _init() -> void:
 	check(red.playbook[0].action == "guard" and red.playbook[0].dist == Rules.STYLES[red.style].defend,
 		"AI guards its castle from its style's range")
 	check(me.playbook.size() <= Playbook.MAX_LINES and red.playbook.size() <= Playbook.MAX_LINES, "defaults fit the line limit")
-	check(me.tax_book.lines[0].tax == Rules.STYLES.balanced.tax_high and me.tax_book.otherwise == Rules.STYLES.balanced.tax_low,
-		"default tax playbook is the old auto tax")
+	check(me.tax_book.lines[0].tax == 19 and me.tax_book.otherwise == 0 and red.tax_book.lines[0].tax == 28,
+		"default tax playbooks are LMO's automatic tax")
 
 	# First line that applies and finds work wins
 	_fresh()
@@ -87,21 +87,21 @@ func _init() -> void:
 	# Tax playbook
 	_fresh()
 	me = sim.country(0)
-	sim.set_tax_book(0, {"lines": [{"below": 1000, "tax": 60}, {"below": 10000, "tax": -1}], "otherwise": 5})
+	sim.set_tax_book(0, {"lines": [{"below": 1000, "tax": 25}, {"below": 10000, "tax": -1}], "otherwise": 5})
 	check(me.auto_tax, "setting a tax playbook turns automatic tax on")
 	me.funds = 500
-	sim.step()
-	check(me.tax == 60, "below 1000: 60%% (%d)" % me.tax)
+	_collect()
+	check(me.tax == 25, "below 1000: 25 (%d)" % me.tax)
 	me.funds = 5000
-	sim.step()
-	check(me.tax == 60, "below 10000: keeps the rate (%d)" % me.tax)
+	_collect()
+	check(me.tax == 25, "below 10000: keeps the rate (%d)" % me.tax)
 	me.funds = 50000
-	sim.step()
-	check(me.tax == 5, "otherwise: 5%% (%d)" % me.tax)
-	sim.set_tax(0, 40)
+	_collect()
+	check(me.tax == 5, "otherwise: 5 (%d)" % me.tax)
+	sim.set_tax(0, 20)
 	me.funds = 500
-	sim.step()
-	check(me.tax == 40 and not me.auto_tax, "moving the tax bar turns the tax playbook off")
+	_collect()
+	check(me.tax == 20 and not me.auto_tax, "moving the tax bar turns the tax playbook off")
 
 	print("FAILED: %d" % _fails if _fails else "ALL PASSED")
 	quit(1 if _fails else 0)
@@ -135,3 +135,9 @@ func check(ok: bool, what: String) -> void:
 	print(("PASS  " if ok else "FAIL  ") + what)
 	if not ok:
 		_fails += 1
+
+
+## Run through the next tax collection (every Rules.CELL_DAYS days).
+func _collect() -> void:
+	for i in Rules.CELL_DAYS:
+		sim.step()

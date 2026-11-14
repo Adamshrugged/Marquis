@@ -363,7 +363,7 @@ func place_castle(id: int, center: Vector2i) -> String:
 
 
 func add_country(id: int, top: Vector2i) -> void:
-	countries.append({"id": id, "castle": top, "funds": 5000, "tax": 50,
+	countries.append({"id": id, "castle": top, "funds": 5000, "tax": 10,
 		"leader": Rules.LEADER_START, "style": ""})
 	countries.sort_custom(func(a, b): return a.id < b.id)
 

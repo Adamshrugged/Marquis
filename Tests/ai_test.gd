@@ -36,7 +36,6 @@ func _init() -> void:
 	_fresh()
 	red = sim.country(1)
 	sim.country(0).leader.strength = 100000   # castle far too strong to attack
-	sim.country(0).emit_cooldown = 1 << 30
 	run(11)   # fields built, rally chosen
 	check(red.rally.x >= 0, "Red has a rally point")
 	var army := sim._spawn(1, red.rally, Rules.RAID_STRENGTH + 500)
@@ -75,14 +74,15 @@ func _init() -> void:
 	sim._choose_job(strong)
 	check(strong.job in ["attack", "march", "rally"], "strong unit still goes to fight (job '%s')" % strong.job)
 
-	# Upkeep makes auto tax go high
+	# AI auto tax [E]: 28 when broke, 0 from 1792 funds
 	_fresh()
 	red = sim.country(1)
-	red.funds = 1000
-	sim._spawn(1, Vector2i(26, 10), 6000)
-	run(1)
-	check(red.tax == Simulation.new(Level.load_file("res://Levels/sample_valley.json"), 1).style(red).tax_high,
-		"upkeep pushes auto tax up (%d)" % red.tax)
+	red.funds = 100
+	run(Rules.CELL_DAYS)
+	check(red.tax == 28, "broke AI taxes at 28 (%d)" % red.tax)
+	red.funds = 3000
+	run(Rules.CELL_DAYS)
+	check(red.tax == 0, "rich AI taxes at 0 (%d)" % red.tax)
 
 	# Every country starts with a unit just outside its castle; levels can add more
 	_fresh()
