@@ -172,6 +172,12 @@ func _sync() -> void:
 
 func _commit_units(redraw: bool) -> void:
 	game.sim.set_playbook(game.sim.player, _lines)
+	# Show what the units follow: Playbook.sanitize may have corrected a line
+	# (sizes below 0, "to" below "from")
+	var kept := _me().playbook
+	if kept != _lines:
+		_lines = kept.duplicate(true)
+		redraw = true
 	if redraw:
 		_redraw_units()
 
@@ -209,7 +215,7 @@ func _unit_row(n: int) -> void:
 		_commit_units(false))
 	row.add_child(on)
 	_label(row, "%d" % (n + 1)).custom_minimum_size = Vector2(24, 0)
-	_number(row, l.min, "0", func(v): l.min = maxi(v, 0))
+	_number(row, l.min, "0", func(v): l.min = v)
 	_number(row, l.max, "no limit", func(v): l.max = v)
 	var action := OptionButton.new()
 	action.custom_minimum_size = Vector2(150, 0)

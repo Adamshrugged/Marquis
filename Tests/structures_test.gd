@@ -95,6 +95,16 @@ func _init() -> void:
 	check(intruder.dead and sim._units_at(gate).all(func(e): return e.owner == 0 and not e.dead) \
 		and not sim._units_at(gate).is_empty(), "released unit fights the enemy in the gate")
 
+	# A released unit that merges with a gate guard isn't counted twice in the stats
+	_fresh()
+	sim._spawn(0, sim.world.castle_entrance(0), 30).order = "standby"   # a guard that stays put
+	sim.country(0).leader.strength = 10000
+	sim.country(0).emit_cooldown = 0
+	sim.step()
+	var live := sim.units.filter(func(e): return e.owner == 0 and not e.is_leader and not e.dead).size()
+	check(sim.units.all(func(e): return not e.dead) and sim.stats(0).units == live,
+		"merged units leave the list the same day (%d counted, %d alive)" % [sim.stats(0).units, live])
+
 	_fresh()
 	w = sim.world
 	sim._spawn_monsters(1.0)

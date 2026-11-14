@@ -41,9 +41,6 @@ var _sv_unit: Unit
 var _sv_want := {}               # kind -> furthest steps any line wants it
 var _sv_found := {}              # kind -> [cell where the work is done, target cell, steps]
 var _stats := {}
-## Profiling counters: searches run and cells they visited (Tests/ai_batch.gd reports them)
-var search_calls := 0
-var search_cells := 0
 # Distance maps per country, refreshed every Rules.FIELD_DAYS
 var _home_field := {}    # owner -> PackedInt32Array, steps to the nearest own village
 var _enemy_field := {}   # owner -> PackedInt32Array, steps to the nearest enemy castle centre
@@ -143,8 +140,9 @@ func step() -> void:
 	for u in units.duplicate():
 		if not u.dead:
 			_update_unit(u)
-	units.assign(units.filter(func(u): return not u.dead))
 	_update_leaders()
+	# After the leaders too: a unit they release can merge or fight at the gate
+	units.assign(units.filter(func(u): return not u.dead))
 	_collect_taxes()
 	_check_end()
 	if day % history_every == 0 or state != "playing":
@@ -397,7 +395,6 @@ func _survey_start(u: Unit, reach: Dictionary, can_afford: bool) -> void:
 		_sv_want.erase("seal")
 	_sv_found = {}
 	_sv_start = world.idx(u.pos)
-	search_calls += 1
 	_sv_stamp += 1
 	_sv_seen[_sv_start] = _sv_stamp
 	_sv_dist[_sv_start] = 0
@@ -451,7 +448,6 @@ func _survey_grow(kind: String, most: int) -> void:
 		if d > most:
 			return
 		_sv_head += 1
-		search_cells += 1
 		var p := Vector2i(i % w, i / w)
 		if not _reserved.has(i) or _reserved[i] == u:
 			if open_work:
@@ -509,7 +505,6 @@ func _found(kind: String, d: int, at: int, target: int) -> void:
 ## not corridors). Returns {path, target, kind} for the lowest score, or {}.
 func _search(u: Unit, max_dist: int, scorer: Callable) -> Dictionary:
 	var start := world.idx(u.pos)
-	search_calls += 1
 	_stamp += 1
 	_seen[start] = _stamp
 	_dist[start] = 0
@@ -522,7 +517,6 @@ func _search(u: Unit, max_dist: int, scorer: Callable) -> Dictionary:
 	while head < queue.size():
 		var i: int = queue[head]
 		head += 1
-		search_cells += 1
 		var d: int = _dist[i]
 		if d > best_score or d > max_dist:
 			break

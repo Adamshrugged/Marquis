@@ -135,10 +135,6 @@ func get_country(id: int) -> Dictionary:
 	return {}
 
 
-func terrain_at(x: int, y: int) -> String:
-	return terrain[y][x]
-
-
 func territory_at(x: int, y: int) -> int:
 	if territory.is_empty():
 		return -1
