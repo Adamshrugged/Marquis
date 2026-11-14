@@ -15,10 +15,6 @@ run/main_scene="res://Scenes/Game.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
-[autoload]
-
-GameManager="*res://Scripts/gameManager.gd"
-
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0

@@ -1,0 +1,2 @@
+- [HUD layout](project_hud_layout.md) — screen regions of top bar/minimap/unit/status windows (HUD_TOP/HUD_BOTTOM), how view windows are wired
+- [Capturing screenshots](reference_capture_screens.md) — temp capture scene recipe, pinning the mouse, input checks must run windowed

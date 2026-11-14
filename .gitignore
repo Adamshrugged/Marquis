@@ -1,3 +1,9 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Lord Monarch Online (Falcom) - user-supplied, never commit
+DS7E_WIN/
+
+# Python bytecode from tools/
+__pycache__/
