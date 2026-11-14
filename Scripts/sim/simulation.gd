@@ -879,10 +879,16 @@ func _work_structure(u: Unit) -> bool:
 
 
 func _at_site(u: Unit) -> bool:
-	if u.job in ADJACENT_JOBS:
-		var d := u.pos - u.job_target
+	return work_spot(u.pos, u.job_target, u.job)
+
+
+## Whether a job on target is done from p: next to it for structures, on it otherwise.
+## The one place for this rule (orders, the order preview and routing use it).
+static func work_spot(p: Vector2i, target: Vector2i, job: String) -> bool:
+	if job in ADJACENT_JOBS:
+		var d := p - target
 		return absi(d.x) + absi(d.y) == 1
-	return u.pos == u.job_target
+	return p == target
 
 
 func _finish_job(u: Unit) -> void:
@@ -1115,7 +1121,7 @@ func _collect_taxes() -> void:
 				funds = -INF
 			k.tax = Playbook.tax_rate(k.tax_book, funds, k.tax)
 		k.upkeep = 0.0
-		if not k.alive or k.tax <= 1 or k.leader.pos != world.castle_center(k.id):
+		if no_tax_reason(k.id, k.tax) != "":
 			k.connected.clear()
 			continue
 		if day % Rules.TAX_ROUTE_DAYS == 1 or k.connected.is_empty():
@@ -1162,9 +1168,9 @@ static func village_growth(pop: float, tax: int) -> float:
 ## leader was away) the routes are found afresh, as the next collection would.
 ## Zero while the leader is away from the castle centre.
 func tax_income(owner: int, rate: int) -> float:
-	var k := country(owner)
-	if k == null or not k.alive or rate <= 1 or k.leader.pos != world.castle_center(owner):
+	if no_tax_reason(owner, rate) != "":
 		return 0.0
+	var k := country(owner)
 	var paying: Dictionary = k.connected if not k.connected.is_empty() else tax_reach(owner).villages
 	var pop := 0.0
 	for j in paying:
@@ -1236,15 +1242,27 @@ func reset_playbooks(owner: int, style_name: String = "") -> void:
 	k.tax_book = Playbook.default_tax(st)
 
 
+## Why no tax comes in at this rate, or "" when it does. The one place for this
+## rule: tax only flows with the leader in the castle centre and a rate above 1%.
+func no_tax_reason(owner: int, rate: int) -> String:
+	var k := country(owner)
+	if k == null or not k.alive:
+		return "No tax: your country is defeated"
+	if k.leader.pos != world.castle_center(owner):
+		return "No tax: leader is away from the castle"
+	if rate <= 1:
+		return "No tax: rate is too low"
+	return ""
+
+
 ## Why tax is or isn't coming in, for the HUD.
 func tax_status(owner: int) -> String:
 	var k := country(owner)
 	if not k.alive:
 		return ""
-	if k.leader.pos != world.castle_center(owner):
-		return "No tax: leader is away from the castle"
-	if k.tax <= 1:
-		return "No tax: rate is too low"
+	var why := no_tax_reason(owner, k.tax)
+	if why != "":
+		return why
 	var total := 0
 	for i in world.villages:
 		if world.village_owner[i] == owner:
@@ -1347,9 +1365,7 @@ func _next_queued(u: Unit) -> bool:
 
 func _order_one(u: Unit, target: Vector2i, action: String) -> bool:
 	var route := _route_for(u, target, action)
-	var off: Vector2i = u.pos - target
-	var there: bool = absi(off.x) + absi(off.y) == 1 if action in ADJACENT_JOBS else u.pos == target
-	if route.is_empty() and not there:
+	if route.is_empty() and not work_spot(u.pos, target, action):
 		return false
 	_drop_job(u)
 	u.ordered = true
@@ -1449,8 +1465,7 @@ func _route_for(u: Unit, target: Vector2i, job: String) -> Dictionary:
 	if not job in ADJACENT_JOBS:
 		return _route(u, target)
 	return _search(u, 9999, func(p: Vector2i, d: int):
-		var off := p - target
-		return [d, "go"] if absi(off.x) + absi(off.y) == 1 else null)
+		return [d, "go"] if work_spot(p, target, job) else null)
 
 
 func _route(u: Unit, target: Vector2i) -> Dictionary:

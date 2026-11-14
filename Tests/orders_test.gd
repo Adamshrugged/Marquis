@@ -174,6 +174,23 @@ func _init() -> void:
 	run(10)
 	check(sim.tax_status(0).contains("leader is away"), "tax status: leader away")
 
+	# Beating a leader hands its villages, units and funds to the winner [M]
+	_fresh()
+	var green := sim.country(0)
+	var red := sim.country(1)
+	var red_units := sim.units.filter(func(u): return u.owner == 1 and not u.is_leader)
+	var red_villages := sim.world.villages_of(1)
+	var both_funds := green.funds + red.funds
+	var attacker := sim._spawn(0, sim.world.castle_entrance(1), 500)
+	check(sim._fight(attacker, red.leader), "the attacker beats the leader")
+	check(not red.alive and red.funds == 0, "the beaten country is out")
+	check(not red_villages.is_empty() and red_villages.all(func(p): return sim.world.village_at(p) == 0),
+		"its villages change hands")
+	check(not red_units.is_empty() and red_units.all(func(u): return u.owner == 0 and u.order == "standby"),
+		"its units change hands and stand by")
+	check(is_equal_approx(green.funds, both_funds), "its funds change hands")
+	check(sim.world.castle_owner[sim.world.idx(sim.world.castle_center(1))] < 0, "its castle is gone")
+
 	print("FAILED: %d" % _fails if _fails else "ALL PASSED")
 	quit(1 if _fails else 0)
 

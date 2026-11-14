@@ -113,7 +113,7 @@ func to_dict() -> Dictionary:
 
 
 func _country_dict(c: Dictionary) -> Dictionary:
-	var out := {"id": c.id, "color": Level.COLORS[c.id], "castle": [c.castle.x, c.castle.y],
+	var out := {"id": c.id, "castle": [c.castle.x, c.castle.y],
 		"funds": c.funds, "tax": c.tax, "leader": c.leader,
 		"control": "player" if c.id == player else "ai"}
 	if c.style != "":

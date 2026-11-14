@@ -9,8 +9,6 @@ class_name UnitWindow
 
 const WIDTH := 250.0
 const STRENGTH_MAX := 65535.0    # top of the (log scale) strength graph
-const TERRAIN_NAMES := {".": "Clear land", "T": "Woods", "~": "Water", "^": "Mountain", "=": "Bridge",
-	"b": "Bridge", "x": "Barricade", "o": "Cave", "*": "Rubble"}
 const JOB_WORDS := {"clear": "Clearing land", "build": "Building a village", "attack": "Attacking",
 	"march": "Marching on the enemy", "rally": "Gathering to march", "home": "Going home",
 	"guard": "Guarding the castle gate", "move": "Moving", "defend": "Defending",
@@ -200,12 +198,11 @@ func _show_land(cell: Vector2i) -> void:
 	var w := sim.world
 	var i := w.idx(cell)
 	var t := w.terrain_at(cell)
-	var name: String = TERRAIN_NAMES.get(t, "Unknown")
+	var name: String = World.TERRAIN_NAMES.get(t, "Unknown")
 	var land := w.territory[i]
 	_title_for(name, -1)
-	var max_dur := {"=": Rules.BRIDGE_MAX, "b": Rules.BRIDGE_MAX, "x": Rules.BARRICADE_MAX, "*": Rules.MAP_BARRICADE}
-	if max_dur.has(t):
-		_set_bar("Durability %d / %d" % [w.durability[i], max_dur[t]], float(w.durability[i]) / max_dur[t], -1)
+	if World.MAX_DURABILITY.has(t):
+		_set_bar("Durability %d / %d" % [w.durability[i], World.MAX_DURABILITY[t]], float(w.durability[i]) / World.MAX_DURABILITY[t], -1)
 	else:
 		_value.hide()
 		_bar.hide()

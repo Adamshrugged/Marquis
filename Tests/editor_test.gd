@@ -95,6 +95,24 @@ func _init() -> void:
 	var short_sim := Simulation.new(short, 1)
 	short_sim.step()
 	check("short territory rows play", short_sim.day == 1 and short_sim.world.territory_of(Vector2i(0, 8)) == 0)
+	bad = base.duplicate(true)
+	rows = []
+	for y in 16:
+		rows.append("23x0" if y == 0 else "")   # 2, 3: not in the level; x: not a digit
+	bad.territory = rows
+	var odd := Level.new()
+	check("territory of missing countries cleared",
+		odd._parse(bad) == "" and odd.territory_at(0, 0) == -1 and odd.territory_at(2, 0) == -1 and odd.territory_at(3, 0) == 0)
+	bad = base.duplicate(true)
+	var water: String = bad.terrain[8]
+	bad.terrain[8] = water.substr(0, 8) + "~" + water.substr(9)
+	bad.villages = [{"owner": 0, "pos": [8, 8]}]
+	check("village on water rejected", Level.new()._parse(bad) != "")
+	var named := base.duplicate(true)
+	named.countries[0]["color"] = "red"
+	var renamed := Level.new()
+	renamed._parse(named)
+	check("country colour follows the id", renamed.get_country(0).color == "green")
 
 	# The editor scene starts and draws without script errors
 	var ed: Node = load("res://Scenes/Editor.tscn").instantiate()

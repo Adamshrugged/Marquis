@@ -325,9 +325,7 @@ func _update_preview(cell: Vector2i, shift: bool) -> void:
 		if shift and u.ordered and u.job != "":
 			from = u.queue.back()[0] if not u.queue.is_empty() else u.job_target
 		var path := sim.route_for(u, cell, action, from)
-		var off := from - cell
-		var there := absi(off.x) + absi(off.y) == 1 if action in Simulation.ADJACENT_JOBS else from == cell
-		if path.is_empty() and not there:
+		if path.is_empty() and not Simulation.work_spot(from, cell, action):
 			continue
 		_preview_ok = true
 		_preview_paths.append([u, from, path])
@@ -486,12 +484,9 @@ func describe(cell: Vector2i) -> String:
 	elif w.castle_owner[i] >= 0:
 		parts.append("%s castle" % sim.country(w.castle_owner[i]).color.capitalize())
 	else:
-		var names := {".": "clear land", "T": "woods", "~": "water", "^": "mountain", "=": "bridge",
-			"b": "bridge", "x": "barricade", "o": "cave", "*": "rubble"}
-		var t: String = names.get(w.terrain_at(cell), "?")
-		var max_dur := {"=": Rules.BRIDGE_MAX, "b": Rules.BRIDGE_MAX, "x": Rules.BARRICADE_MAX, "*": Rules.MAP_BARRICADE}
-		if max_dur.has(w.terrain_at(cell)):
-			t += " (durability %d/%d)" % [w.durability[i], max_dur[w.terrain_at(cell)]]
+		var t: String = World.TERRAIN_NAMES.get(w.terrain_at(cell), "?").to_lower()
+		if World.MAX_DURABILITY.has(w.terrain_at(cell)):
+			t += " (durability %d/%d)" % [w.durability[i], World.MAX_DURABILITY[w.terrain_at(cell)]]
 			if w.terrain_at(cell) == "=" and w.durability[i] < Rules.BRIDGE_MAX:
 				t = "damaged " + t + " - Build Bridge repairs it"
 		if w.territory[i] >= 0:

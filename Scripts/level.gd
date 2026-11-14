@@ -78,7 +78,7 @@ func _parse(d: Dictionary) -> String:
 			return "country %d castle %s does not fit on the map" % [id, castle]
 		countries.append({
 			"id": id,
-			"color": c.get("color", COLORS[id]),
+			"color": COLORS[id],   # always from the id, so names match the drawn colours
 			"castle": castle,
 			"funds": int(c.get("funds", 5000)),
 			"tax": int(c.get("tax", 50)),
@@ -92,11 +92,20 @@ func _parse(d: Dictionary) -> String:
 			terrain[castle.y + dy] = row.substr(0, castle.x) + "CCC" + row.substr(castle.x + 3)
 	if get_country(player).is_empty():
 		return "player %d has no country" % player
+	# Territory marked for a country that isn't in the level (or not a digit) is no one's
+	for y in territory.size():
+		var row := territory[y]
+		for x in width:
+			if row[x] != "." and get_country("0123".find(row[x])).is_empty():
+				row = row.substr(0, x) + "." + row.substr(x + 1)
+		territory[y] = row
 
 	for v in d.get("villages", []):
 		var pos := _vec(v.get("pos", null))
 		if not in_bounds(pos):
 			return "village at %s is off the map" % pos
+		if terrain[pos.y][pos.x] != ".":
+			return "village at %s is not on clear land" % pos
 		var owner := int(v.get("owner", 0))
 		if get_country(owner).is_empty():
 			return "village at %s belongs to country %d, which isn't in the level" % [pos, owner]

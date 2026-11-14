@@ -5,6 +5,10 @@ class_name World
 ## Cells that change are queued in `dirty` for the renderer to redraw.
 
 const BLOCKING := "~^xo*"  # terrain chars units can't walk on
+## For the info panels: what each terrain char is called, and full durability of structures
+const TERRAIN_NAMES := {".": "Clear land", "T": "Woods", "~": "Water", "^": "Mountain", "=": "Bridge",
+	"b": "Bridge", "x": "Barricade", "o": "Cave", "*": "Rubble"}
+const MAX_DURABILITY := {"=": Rules.BRIDGE_MAX, "b": Rules.BRIDGE_MAX, "x": Rules.BARRICADE_MAX, "*": Rules.MAP_BARRICADE}
 const N8: Array[Vector2i] = [
 	Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1),
 	Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1),

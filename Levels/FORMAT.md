@@ -28,8 +28,8 @@ See `sample_valley.json`. Minimal shape:
   "day_limit": 1500,
   "player": 0,
   "countries": [
-    { "id": 0, "color": "green", "castle": [3, 3], "funds": 5000, "tax": 50, "control": "player" },
-    { "id": 1, "color": "red",   "castle": [26, 14], "funds": 5000, "tax": 50, "control": "ai" }
+    { "id": 0, "castle": [3, 3], "funds": 5000, "tax": 50, "control": "player" },
+    { "id": 1, "castle": [26, 14], "funds": 5000, "tax": 50, "control": "ai" }
   ],
   "terrain": [
     "^^^^^^^^",
@@ -61,7 +61,7 @@ Coordinates are `[x, y]` with `[0, 0]` top-left.
 
 | Field | Meaning |
 |---|---|
-| `id` | 0 green, 1 red, 2 white, 3 black |
+| `id` | 0 green, 1 red, 2 white, 3 black (the id sets the colour) |
 | `castle` | Top-left cell of the 3x3 castle. Those 9 cells become `C` automatically |
 | `funds`, `tax` | Starting money and tax rate |
 | `leader` | Starting leader strength. Default 400 (a guess) |

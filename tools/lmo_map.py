@@ -21,7 +21,6 @@ import sys
 from pathlib import Path
 
 N = 48
-COLORS = ["green", "red", "white", "black"]
 
 # Neighbour offsets, bit order used by the mask (N, NE, E, SE, S, SW, W, NW)
 DIRS = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
@@ -175,7 +174,6 @@ def convert(path, codes, theme, name):
     for owner in sorted(castles):
         level["countries"].append({
             "id": owner,
-            "color": COLORS[owner],
             "castle": castles[owner],
             "funds": 5000,
             "tax": 50,

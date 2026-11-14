@@ -111,13 +111,7 @@ func _update_legend() -> void:
 	var note := ""
 	if kind == Kind.TAX:
 		var sim: Simulation = game.sim
-		var me := sim.country(sim.player)
-		if me == null or not me.alive:
-			note = "No tax: your country is defeated"
-		elif me.leader.pos != sim.world.castle_center(me.id):
-			note = "No tax: leader away from the castle"
-		elif me.tax <= 1:
-			note = "No tax: the rate is too low"
+		note = sim.no_tax_reason(sim.player, sim.country(sim.player).tax)
 	_banner.text = note
 	_banner.visible = note != ""
 	_legend.show()
@@ -247,7 +241,7 @@ func _draw_tax() -> void:
 			draw_line(m + Vector2(-r, -r), m + Vector2(r, r), col, width)
 			draw_line(m + Vector2(-r, r), m + Vector2(r, -r), col, width)
 	# Own villages (none pay while tax is stopped, whatever routes were last found)
-	var paying := {} if me.tax <= 1 or me.leader.pos != w.castle_center(me.id) else me.connected
+	var paying := {} if sim.no_tax_reason(me.id, me.tax) != "" else me.connected
 	for p in w.villages_of(me.id):
 		var i := w.idx(p)
 		var col := CUT if not reach.villages.has(i) else (PAYING if paying.has(i) else PENDING)
