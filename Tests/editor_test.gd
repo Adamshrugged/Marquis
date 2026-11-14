@@ -74,6 +74,28 @@ func _init() -> void:
 	var sample := LevelDoc.open("res://Levels/sample_valley.json")
 	check("opens sample valley", sample != null and sample.to_level() != null)
 
+	# The game's loader turns down files it can't play, instead of erroring mid-game
+	var base := LevelDoc.blank(16, 16).to_dict()   # green (0) and red (1)
+	var bad: Dictionary = base.duplicate(true)
+	bad.villages = [{"owner": 3, "pos": [8, 8]}]
+	check("village of a missing country rejected", Level.new()._parse(bad) != "")
+	bad = base.duplicate(true)
+	bad.units = [{"owner": 2, "pos": [8, 8], "strength": 50}]
+	check("unit of a missing country rejected", Level.new()._parse(bad) != "")
+	bad = base.duplicate(true)
+	bad.countries.append(bad.countries[0].duplicate())
+	check("duplicate country id rejected", Level.new()._parse(bad) != "")
+	bad = base.duplicate(true)
+	var rows: Array = []
+	for y in 16:
+		rows.append("0" if y == 8 else "")       # rows shorter than the map
+	bad.territory = rows
+	var short := Level.new()
+	check("short territory rows load", short._parse(bad) == "")
+	var short_sim := Simulation.new(short, 1)
+	short_sim.step()
+	check("short territory rows play", short_sim.day == 1 and short_sim.world.territory_of(Vector2i(0, 8)) == 0)
+
 	# The editor scene starts and draws without script errors
 	var ed: Node = load("res://Scenes/Editor.tscn").instantiate()
 	root.add_child(ed)

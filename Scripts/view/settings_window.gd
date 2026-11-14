@@ -25,6 +25,7 @@ var _edge: CheckButton
 var _minimap: CheckButton
 var _scale: OptionButton
 var _scale_note: Label
+var _editor: Button
 
 
 func setup(g) -> void:
@@ -72,12 +73,13 @@ func setup(g) -> void:
 	saved.add_theme_color_override("font_color", Color(0.75, 0.8, 0.85))
 	saved.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom.add_child(saved)
-	var editor := Button.new()
-	editor.text = "Map editor"
-	editor.tooltip_text = "Leave this game and edit its map"
-	editor.focus_mode = Control.FOCUS_NONE
-	editor.pressed.connect(_open_editor)
-	bottom.add_child(editor)
+	_editor = Button.new()
+	_editor.text = "Map editor"
+	_editor.tooltip_text = "Leave this game and edit its map"
+	_editor.focus_mode = Control.FOCUS_NONE
+	_editor.pressed.connect(_open_editor)
+	bottom.add_child(_editor)
+	visibility_changed.connect(func(): _editor.text = "Map editor")   # disarm the confirm
 	var close := Button.new()
 	close.text = "Close (Esc)"
 	close.focus_mode = Control.FOCUS_NONE
@@ -115,7 +117,11 @@ func _check(grid: GridContainer, text: String, key: String, tip: String) -> Chec
 	return b
 
 
+## A game under way is lost on leaving, so the first click only asks.
 func _open_editor() -> void:
+	if game.sim.day > 0 and game.sim.state == "playing" and _editor.text == "Map editor":
+		_editor.text = "Leave game? Click again"
+		return
 	get_tree().root.set_meta("editor_level", game.level_path)
 	get_tree().change_scene_to_file("res://Scenes/Editor.tscn")
 

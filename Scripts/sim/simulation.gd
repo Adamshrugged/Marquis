@@ -960,7 +960,9 @@ func _spawn_monsters(chance: float = Rules.MONSTER_SPAWN_CHANCE) -> void:
 		var start := rng.randi_range(0, 3)
 		for n in 4:
 			var p: Vector2i = cave + World.N4[(start + n) % 4]
-			if world.is_walkable(p) and world.castle_owner[world.idx(p)] < 0:
+			# Not onto other units: they'd share the cell without a fight
+			if world.is_walkable(p) and world.castle_owner[world.idx(p)] < 0 \
+					and _units_at(p).all(func(e): return e.owner == MONSTER):
 				var m := _spawn(MONSTER, p, Rules.MONSTER_START)
 				m.order = "monster"
 				_merge_at(m)
@@ -1086,7 +1088,12 @@ func _update_leaders() -> void:
 			l.strength -= s
 			var u := _spawn(k.id, world.castle_entrance(k.id), s)
 			u.order = k.default_order
-			_merge_at(u)
+			# An enemy standing in the gate has to be fought, not shared with
+			for e in _units_at(u.pos).duplicate():
+				if e.owner != k.id and not e.dead and not _fight(u, e):
+					break
+			if not u.dead:
+				_merge_at(u)
 			k.emit_cooldown = Rules.LEADER_EMIT_COOLDOWN
 		var gap := maxf(k.population * Rules.LEADER_POP_SHARE, Rules.LEADER_FLOOR) - l.strength
 		var step := maxf(1.0, absf(gap) / Rules.LEADER_FOLLOW)
@@ -1111,18 +1118,9 @@ func _collect_taxes() -> void:
 		if not k.alive or k.tax <= 1 or k.leader.pos != world.castle_center(k.id):
 			k.connected.clear()
 			continue
-		if day % Rules.TAX_ROUTE_DAYS != 1 and not k.connected.is_empty():
-			var paid := 0.0
-			for j in k.connected:
-				if world.village_owner[j] == k.id:
-					paid += world.village_pop[j]
-			k.funds += paid * k.tax / Rules.TAX_DIVISOR
-			continue
-		k.connected = tax_reach(k.id).villages
-		var pop := 0.0
-		for j in k.connected:
-			pop += world.village_pop[j]
-		k.funds += pop * k.tax / Rules.TAX_DIVISOR
+		if day % Rules.TAX_ROUTE_DAYS == 1 or k.connected.is_empty():
+			k.connected = tax_reach(k.id).villages
+		k.funds += tax_income(k.id, k.tax)
 
 
 ## Where tax can come from: cells walkable from the castle entrance without passing

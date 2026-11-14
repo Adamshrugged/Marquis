@@ -61,6 +61,9 @@ func _parse(d: Dictionary) -> String:
 		territory = PackedStringArray(d.territory)
 		if territory.size() != height:
 			return "territory has %d rows, expected %d" % [territory.size(), height]
+		for y in height:
+			# Pad or cut rows that don't match the map width (as the editor does)
+			territory[y] = (territory[y] + ".".repeat(width)).left(width)
 
 	if not d.has("countries") or d.countries.is_empty():
 		return "no countries"
@@ -69,6 +72,8 @@ func _parse(d: Dictionary) -> String:
 		var castle := _vec(c.get("castle", null))
 		if id < 0 or id > 3:
 			return "country id %d out of range 0-3" % id
+		if not get_country(id).is_empty():
+			return "country id %d appears twice" % id
 		if castle.x < 0 or castle.y < 0 or castle.x + 3 > width or castle.y + 3 > height:
 			return "country %d castle %s does not fit on the map" % [id, castle]
 		countries.append({
@@ -92,12 +97,18 @@ func _parse(d: Dictionary) -> String:
 		var pos := _vec(v.get("pos", null))
 		if not in_bounds(pos):
 			return "village at %s is off the map" % pos
-		villages.append({"owner": int(v.get("owner", 0)), "pos": pos})
+		var owner := int(v.get("owner", 0))
+		if get_country(owner).is_empty():
+			return "village at %s belongs to country %d, which isn't in the level" % [pos, owner]
+		villages.append({"owner": owner, "pos": pos})
 	for u in d.get("units", []):
 		var pos := _vec(u.get("pos", null))
 		if not in_bounds(pos):
 			return "unit at %s is off the map" % pos
-		units.append({"owner": int(u.get("owner", 0)), "pos": pos, "strength": float(u.get("strength", Rules.START_UNIT))})
+		var owner := int(u.get("owner", 0))
+		if get_country(owner).is_empty():
+			return "unit at %s belongs to country %d, which isn't in the level" % [pos, owner]
+		units.append({"owner": owner, "pos": pos, "strength": float(u.get("strength", Rules.START_UNIT))})
 	for o in d.get("objects", []):
 		var pos := _vec(o.get("pos", null))
 		if not in_bounds(pos):

@@ -73,6 +73,33 @@ func _init() -> void:
 	var m := sim.monster_stats()
 	check(m.count == 1, "a monster came out of the cave")
 
+	# ... but not onto a unit standing by the cave (they'd share the cell without a fight)
+	_fresh()
+	w = sim.world
+	for d in World.N4:
+		var by: Vector2i = Vector2i(10, 12) + d
+		if w.is_walkable(by):
+			sim._spawn(0, by, 50)
+	sim._spawn_monsters(1.0)
+	check(sim.monster_stats().count == 0, "no monster spawns onto a unit")
+
+	# A leader's released unit fights an enemy standing in the gate
+	_fresh()
+	var gate := sim.world.castle_entrance(0)
+	var intruder := sim._spawn(1, gate, 10)
+	var lord := sim.country(0)
+	lord.leader.strength = 10000
+	lord.emit_cooldown = 0
+	lord.population = 0
+	sim._update_leaders()
+	check(intruder.dead and sim._units_at(gate).all(func(e): return e.owner == 0 and not e.dead) \
+		and not sim._units_at(gate).is_empty(), "released unit fights the enemy in the gate")
+
+	_fresh()
+	w = sim.world
+	sim._spawn_monsters(1.0)
+	m = sim.monster_stats()
+
 	# Seal Cave: the cave is closed and costs strength
 	u = sim._spawn(0, Vector2i(8, 12), 200)
 	check(sim.order_units([u], Vector2i(10, 12), "seal") == 1, "seal accepted")

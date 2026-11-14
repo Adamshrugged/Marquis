@@ -17,7 +17,7 @@ var _cells := {}                 # "id:row key" -> Label
 var _who := {}                   # country id -> Label (player / AI style / defeated)
 var _monsters: Label
 var _day: Label
-var _shown_day := -1
+var _shown := []                 # [day, player tax, auto tax] last drawn; tax can change while paused
 
 
 func setup(g) -> void:
@@ -106,13 +106,13 @@ func toggle() -> void:
 
 
 func _process(_delta: float) -> void:
-	if visible and game.sim.day != _shown_day:
+	if visible and _state() != _shown:
 		_refresh()
 
 
 func _refresh() -> void:
 	var sim: Simulation = game.sim
-	_shown_day = sim.day
+	_shown = _state()
 	_day.text = "Day %d/%d" % [sim.day, sim.day_limit]
 	for k in sim.countries:
 		var s := sim.stats(k.id)
@@ -131,8 +131,13 @@ func _refresh() -> void:
 			elif r[0] == "funds":
 				l.text = "$%d" % s.funds
 			elif r[0] == "tax":
-				l.text = "%d%%%s" % [s.tax, " auto" if k.auto_tax else ""]
+				l.text = "%d%%%s" % [k.tax, " auto" if k.auto_tax else ""]
 			else:
 				l.text = "%d" % s[r[0]]
 	var m := sim.monster_stats()
 	_monsters.text = "Monsters: %d (strength %d)" % [m.count, m.strength] if m.count > 0 else "No monsters"
+
+
+func _state() -> Array:
+	var me: Country = game.sim.country(game.sim.player)
+	return [game.sim.day, me.tax, me.auto_tax]

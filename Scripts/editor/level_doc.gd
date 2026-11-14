@@ -7,7 +7,6 @@ class_name LevelDoc
 ## Castle cells are not stored as "C" here; the castle list stamps them when saved.
 
 const TERRAIN := ".T~^=bxo*"     # paintable terrain (castle "C" comes from countries)
-const BLOCKING := "~^xo*"
 const THEMES := ["B_010", "B_020", "B_030", "B_040", "B_050"]
 const THEME_NAMES := ["Lord Monarch Night", "China Wars", "Food Panic", "Future Wars", "Fantasy Pastel"]
 const STYLES := ["", "balanced", "aggressive", "builder", "turtle"]
@@ -238,11 +237,11 @@ func warnings() -> Array[String]:
 	if countries.size() < 2:
 		out.append("Only one country: the game is won at once. Add another castle.")
 	for u in units:
-		if terrain_at(u.pos) in BLOCKING or castle_at(u.pos) >= 0:
+		if terrain_at(u.pos) in World.BLOCKING or castle_at(u.pos) >= 0:
 			out.append("A %s unit at %d,%d stands where units can't (it won't appear)" % [Level.COLORS[u.owner], u.pos.x, u.pos.y])
 	for c in countries:
 		var gate: Vector2i = c.castle + Vector2i(1, 3)
-		if not in_bounds(gate) or terrain_at(gate) in BLOCKING or castle_at(gate) >= 0:
+		if not in_bounds(gate) or terrain_at(gate) in World.BLOCKING or castle_at(gate) >= 0:
 			out.append("%s's castle gate (bottom middle) is blocked" % Level.COLORS[c.id].capitalize())
 	return out
 
@@ -264,7 +263,7 @@ func paint_terrain(p: Vector2i, ch: String) -> Array[Vector2i]:
 			objects.remove_at(i)
 	if ch != ".":
 		_put(territory, p, ".")   # only clear land holds territory
-	if ch in BLOCKING:
+	if ch in World.BLOCKING:
 		var u := unit_at(p)
 		if u >= 0:
 			units.remove_at(u)
@@ -395,7 +394,7 @@ func toggle_unit(p: Vector2i, owner: int, strength: float) -> String:
 		return ""
 	if country(owner).is_empty():
 		return "Place %s's castle first" % Level.COLORS[owner]
-	if terrain_at(p) in BLOCKING or castle_at(p) >= 0 or village_at(p) >= 0:
+	if terrain_at(p) in World.BLOCKING or castle_at(p) >= 0 or village_at(p) >= 0:
 		return "Units need open ground"
 	units.append({"owner": owner, "pos": p, "strength": strength})
 	return ""
